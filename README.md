@@ -30,6 +30,7 @@ e ritrovarle subito. Tutto resta sul tuo computer: niente account, niente cloud.
 - [I tuoi dati](#i-tuoi-dati)
 - [Sviluppo](#sviluppo)
 - [Struttura del progetto](#struttura-del-progetto)
+- [Feedback](#feedback)
 - [Licenza](#licenza)
 
 ## Funzionalità
@@ -141,6 +142,16 @@ src-tauri/              backend Rust (Tauri 2)
 e2e/                    test Playwright
 scripts/                immagini dell'installer e generazione delle forme Material
 ```
+
+## Feedback
+
+Il tuo parere aiuta a migliorare TypogNotes:
+
+- 💬 **[Discussioni](https://github.com/zSimone35/TypogNotes/discussions)**: commenti, domande, opinioni e idee da discutere.
+- 🐞 **[Segnala un problema](https://github.com/zSimone35/TypogNotes/issues/new?template=bug.yml)**: qualcosa non funziona.
+- 💡 **[Proponi un'idea](https://github.com/zSimone35/TypogNotes/issues/new?template=idea.yml)**: una funzione nuova o un miglioramento.
+
+Serve un account GitHub (gratuito).
 
 ## Licenza
 

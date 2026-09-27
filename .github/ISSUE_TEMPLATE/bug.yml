@@ -1,0 +1,31 @@
+name: Segnala un problema
+description: Qualcosa non funziona come dovrebbe
+labels: [bug]
+body:
+  - type: textarea
+    id: cosa
+    attributes:
+      label: Cosa è successo?
+      description: Descrivi il problema e cosa ti aspettavi invece.
+    validations:
+      required: true
+  - type: textarea
+    id: passi
+    attributes:
+      label: Come riprodurlo
+      placeholder: "1. Apri una nota\n2. Clicca su…\n3. …"
+  - type: input
+    id: versione
+    attributes:
+      label: Versione di TypogNotes
+      placeholder: "1.0.0"
+  - type: dropdown
+    id: tema
+    attributes:
+      label: Tema
+      options: [Chiaro, Scuro]
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: Trascina qui un'immagine se aiuta a capire.
