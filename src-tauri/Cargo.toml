@@ -1,0 +1,26 @@
+[package]
+name = "typognotes"
+version = "0.1.0"
+description = "Un atelier locale per appunti e scrittura"
+authors = ["TypogNotes"]
+edition = "2024"
+
+[lib]
+name = "typognotes_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.3", features = [] }
+
+[dependencies]
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+spellbook = "0.4.2"
+tauri = { version = "2.11.5", features = [] }
+tauri-plugin-dialog = "2.4.2"
+tauri-plugin-window-state = "2.4.0"
+
+# Error dialog when the app cannot start (same crate tauri-plugin-dialog already builds).
+[target.'cfg(windows)'.dependencies]
+rfd = { version = "0.16", default-features = false, features = ["common-controls-v6"] }

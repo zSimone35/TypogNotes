@@ -1,0 +1,8 @@
+"$schema" = "../gen/schemas/desktop-schema.json"
+identifier = "main"
+description = "La finestra principale usa soltanto comandi applicativi Rust registrati."
+windows = ["main"]
+
+# La GUI ascolta soltanto la richiesta di chiusura nativa per completare
+# l'autosalvataggio prima che Windows termini la finestra.
+permissions = ["core:event:allow-listen", "core:event:allow-unlisten"]
