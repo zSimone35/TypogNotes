@@ -1,14 +1,14 @@
-name: Proponi un'idea
-description: Una funzione nuova o un miglioramento
+name: Suggest an idea
+description: A new feature or an improvement
 labels: [enhancement]
 body:
   - type: textarea
     id: idea
     attributes:
-      label: Cosa vorresti?
+      label: What would you like?
     validations:
       required: true
   - type: textarea
     id: perche
     attributes:
-      label: Perché ti sarebbe utile?
+      label: Why would it be useful to you?

@@ -1,31 +1,31 @@
-name: Segnala un problema
-description: Qualcosa non funziona come dovrebbe
+name: Report a problem
+description: Something is not working as it should
 labels: [bug]
 body:
   - type: textarea
     id: cosa
     attributes:
-      label: Cosa è successo?
-      description: Descrivi il problema e cosa ti aspettavi invece.
+      label: What happened?
+      description: Describe the problem and what you expected instead.
     validations:
       required: true
   - type: textarea
     id: passi
     attributes:
-      label: Come riprodurlo
-      placeholder: "1. Apri una nota\n2. Clicca su…\n3. …"
+      label: How to reproduce it
+      placeholder: "1. Open a note\n2. Click on…\n3. …"
   - type: input
     id: versione
     attributes:
-      label: Versione di TypogNotes
+      label: TypogNotes version
       placeholder: "1.0.0"
   - type: dropdown
     id: tema
     attributes:
-      label: Tema
-      options: [Chiaro, Scuro]
+      label: Theme
+      options: [Light, Dark]
   - type: textarea
     id: screenshot
     attributes:
       label: Screenshot
-      description: Trascina qui un'immagine se aiuta a capire.
+      description: Drag an image here if it helps to understand.

@@ -1,159 +1,161 @@
 <div align="center">
 
-<img src="src-tauri/icons/128x128@2x.png" width="96" alt="Logo TypogNotes" />
+<img src="src-tauri/icons/128x128@2x.png" width="96" alt="TypogNotes logo" />
 
 # TypogNotes
 
-**Scrivere meglio, ogni giorno.**
+**Write better, every day.**
 
-App desktop per Windows per prendere note su un foglio a righe, ordinarle in cartelle
-e ritrovarle subito. Tutto resta sul tuo computer: niente account, niente cloud.
+A Windows desktop app for taking notes on ruled paper, sorting them into folders
+and finding them again instantly. Everything stays on your computer: no account, no cloud.
 
-[![Scarica per Windows](https://img.shields.io/github/v/release/zSimone35/TypogNotes?label=Scarica%20per%20Windows&style=for-the-badge&color=855133)](https://github.com/zSimone35/TypogNotes/releases/latest)
+[![Download for Windows](https://img.shields.io/github/v/release/zSimone35/TypogNotes?label=Download%20for%20Windows&style=for-the-badge&color=855133)](https://github.com/zSimone35/TypogNotes/releases/latest)
 
 ![Tauri 2](https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white)
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Rust](https://img.shields.io/badge/Rust-2024-000000?logo=rust)
-![SQLite](https://img.shields.io/badge/SQLite-locale-003B57?logo=sqlite)
-![Licenza MIT](https://img.shields.io/badge/licenza-MIT-green)
+![SQLite](https://img.shields.io/badge/SQLite-local-003B57?logo=sqlite)
+![MIT License](https://img.shields.io/badge/license-MIT-green)
 
-<img src="assets/screenshots/scrivania.png" alt="La Scrivania: la nota su foglio a righe con il nastro degli strumenti" width="900" />
+<img src="assets/screenshots/scrivania.png" alt="The Desk (Scrivania): a note on ruled paper with the tool ribbon" width="900" />
 
 </div>
 
-## Indice
+> **Note:** the application interface is in Italian. Italian UI names are given in parentheses where they first appear.
 
-- [Funzionalità](#funzionalità)
-- [Galleria](#galleria)
-- [Installazione](#installazione)
-- [Come si usa](#come-si-usa)
-- [I tuoi dati](#i-tuoi-dati)
-- [Sviluppo](#sviluppo)
-- [Struttura del progetto](#struttura-del-progetto)
+## Table of contents
+
+- [Features](#features)
+- [Gallery](#gallery)
+- [Installation](#installation)
+- [How to use it](#how-to-use-it)
+- [Your data](#your-data)
+- [Development](#development)
+- [Project structure](#project-structure)
 - [Feedback](#feedback)
-- [Licenza](#licenza)
+- [License](#license)
 
-## Funzionalità
+## Features
 
-**Scrittura**
-- Foglio a righe con interlinea regolabile: titoli, elenchi, checklist, codice e immagini restano sempre allineati alle righe.
-- Titoli H1–H3 con **sezioni pieghevoli**: la freccia a destra del titolo nasconde il contenuto sotto.
-- Formattazione completa: font per selezione, dimensione, grassetto, corsivo, sottolineato, barrato, allineamento.
-- **Palette 10×8** per testo ed evidenziatore, colori personalizzati e **colori recenti di ogni nota**.
-- Blocchi di codice con evidenziazione della sintassi (14 linguaggi) e copia rapida.
-- **Immagini** (PNG, JPEG, WebP, GIF, BMP) da pulsante o con Ctrl+V, in 5 disposizioni: in linea, testo a capo, interrompi testo, dietro o davanti al testo.
-- Divisori orizzontali con spessore da 1 a 8 px (tasto destro sul pulsante o sulla linea).
-- Controllo ortografico offline in italiano, inglese, francese, spagnolo e tedesco, con dizionario personale; ignora i blocchi di codice.
-- Trova e sostituisci (Ctrl+F) e indice della nota generato dai titoli.
+**Writing**
+- Ruled paper with adjustable line spacing: headings, lists, checklists, code and images always stay aligned to the lines.
+- H1–H3 headings with **collapsible sections**: the arrow to the right of a heading hides the content below it.
+- Full formatting: font per selection, size, bold, italic, underline, strikethrough, alignment.
+- **10×8 palette** for text and highlighter, custom colors and **recent colors for each note**.
+- Code blocks with syntax highlighting (14 languages) and quick copy.
+- **Images** (PNG, JPEG, WebP, GIF, BMP) from a button or with Ctrl+V, in 5 layouts: inline, wrap text, break text, behind or in front of the text.
+- Horizontal dividers from 1 to 8 px thick (right-click the button or the line).
+- Offline spell checking in Italian, English, French, Spanish and German, with a personal dictionary; it ignores code blocks.
+- Find and replace (Ctrl+F) and a note outline generated from the headings.
 
-**Organizzazione**
-- **Bacheca** per navigare cartelle e note: ricerca, filtri, ordinamento, vista a griglia o elenco, trascina una nota su una cartella per spostarla.
-- **Schede** delle note della cartella nella parte alta della Scrivania, riordinabili con il trascinamento o con le frecce.
-- Note in evidenza, segnate come "da sistemare", selezione multipla per spostare o eliminare.
-- **Archivio** e **Cestino** come pagine a sé: apri una nota in sola lettura, ripristinala o eliminala definitivamente.
+**Organization**
+- **Dashboard** (*Bacheca*) to browse folders and notes: search, filters, sorting, grid or list view, drag a note onto a folder to move it.
+- **Tabs** for the notes in the current folder at the top of the Desk (*Scrivania*), reorderable by dragging or with the arrow keys.
+- Pinned notes, notes flagged as "to fix", multi-select to move or delete.
+- **Archive** (*Archivio*) and **Trash** (*Cestino*) as pages of their own: open a note read-only, restore it or delete it permanently.
 
-**Aspetto**
-- Interfaccia Material Design 3 con tema chiaro e scuro.
-- 16 colori del foglio, con nomi dedicati nel tema scuro.
-- Modalità focus, barra laterale comprimibile, nastro degli strumenti ridimensionabile.
+**Look and feel**
+- Material Design 3 interface with light and dark themes.
+- 16 paper colors, with dedicated names in the dark theme.
+- Focus mode, collapsible sidebar, resizable tool ribbon.
 
-**Esportazione**
-- Markdown, HTML e PDF.
+**Export**
+- Markdown, HTML and PDF.
 
-## Galleria
+## Gallery
 
-| Bacheca | Tema scuro |
+| Dashboard | Dark theme |
 |---|---|
-| <img src="assets/screenshots/bacheca.png" alt="Bacheca con cartelle e note" /> | <img src="assets/screenshots/scrivania-scura.png" alt="Scrivania nel tema scuro" /> |
-| **Colori del foglio** | **Palette testo ed evidenziatore** |
-| <img src="assets/screenshots/fogli.png" alt="Menu dei 16 colori del foglio" /> | <img src="assets/screenshots/palette.png" alt="Palette dei colori del testo" /> |
-| **Cestino** | |
-| <img src="assets/screenshots/cestino-scuro.png" alt="Pagina del Cestino con le note come schede" /> | |
+| <img src="assets/screenshots/bacheca.png" alt="Dashboard with folders and notes" /> | <img src="assets/screenshots/scrivania-scura.png" alt="The Desk in the dark theme" /> |
+| **Paper colors** | **Text and highlighter palette** |
+| <img src="assets/screenshots/fogli.png" alt="Menu of the 16 paper colors" /> | <img src="assets/screenshots/palette.png" alt="Text color palette" /> |
+| **Trash** | |
+| <img src="assets/screenshots/cestino-scuro.png" alt="Trash page with notes shown as cards" /> | |
 
-## Installazione
+## Installation
 
-1. Scarica `TypogNotes_x.y.z_x64-setup.exe` dall'[ultima release](https://github.com/zSimone35/TypogNotes/releases/latest).
-2. Avvia il programma di installazione e segui i passaggi. Non servono i permessi di amministratore: l'app viene installata per l'utente corrente.
-3. Apri TypogNotes dal menu Start.
+1. Download `TypogNotes_x.y.z_x64-setup.exe` from the [latest release](https://github.com/zSimone35/TypogNotes/releases/latest).
+2. Run the installer and follow the steps. No administrator rights are needed: the app is installed for the current user.
+3. Open TypogNotes from the Start menu.
 
-Requisiti: Windows 10 o 11 a 64 bit con Microsoft Edge WebView2, già presente nei sistemi aggiornati.
+Requirements: 64-bit Windows 10 or 11 with Microsoft Edge WebView2, already present on up-to-date systems.
 
-> L'installer non è firmato digitalmente: al primo avvio Windows SmartScreen può mostrare un avviso. Scegli **Ulteriori informazioni › Esegui comunque**.
+> The installer is not digitally signed: on first launch Windows SmartScreen may show a warning. Choose **More info › Run anyway**.
 
-## Come si usa
+## How to use it
 
-| Azione | Come |
+| Action | How |
 |---|---|
-| Nuova nota o nuova cartella | Pulsanti in alto nella barra laterale |
-| Passare da una nota all'altra | Schede in alto nella Scrivania |
-| Piegare una sezione | Freccia a destra di un titolo H1, H2 o H3 |
-| Cambiare il colore del foglio | Nastro › Nota › menu del colore |
-| Inserire un'immagine | Pulsante immagine nel nastro oppure Ctrl+V |
-| Disposizione di un'immagine | Tasto destro sull'immagine |
-| Formattazione veloce, colori recenti, correzioni | Tasto destro nel testo |
-| Forma delle checkbox | Tasto destro sul pulsante Checklist |
-| Trova e sostituisci | Ctrl+F |
-| Archiviare, spostare, fissare una nota | Menu ⋯ o tasto destro sulla scheda |
+| New note or new folder | Buttons at the top of the sidebar |
+| Switch between notes | Tabs at the top of the Desk |
+| Collapse a section | Arrow to the right of an H1, H2 or H3 heading |
+| Change the paper color | Ribbon › Note › color menu |
+| Insert an image | Image button in the ribbon, or Ctrl+V |
+| Image layout | Right-click the image |
+| Quick formatting, recent colors, corrections | Right-click in the text |
+| Checkbox shape | Right-click the Checklist button |
+| Find and replace | Ctrl+F |
+| Archive, move or pin a note | ⋯ menu or right-click the tab |
 
-Il salvataggio è automatico: se non riesce, compare un avviso in alto a destra.
+Saving is automatic: if it fails, a warning appears at the top right.
 
-## I tuoi dati
+## Your data
 
-Le note sono salvate in un database SQLite nella cartella dati locale di Windows
-(`%LOCALAPPDATA%\com.typognotes.app`). Nessun contenuto viene inviato in rete.
-Le immagini sono conservate nello stesso database, insieme alla nota che le contiene.
+Notes are stored in a SQLite database in the local Windows data folder
+(`%LOCALAPPDATA%\com.typognotes.app`). No content is sent over the network.
+Images are kept in the same database, together with the note that contains them.
 
-## Sviluppo
+## Development
 
-**Prerequisiti**
-- Node.js 22 o successivo
-- Rust stable con toolchain `stable-msvc`
-- Visual Studio Build Tools con il workload "Desktop development with C++"
+**Prerequisites**
+- Node.js 22 or later
+- Rust stable with the `stable-msvc` toolchain
+- Visual Studio Build Tools with the "Desktop development with C++" workload
 - Microsoft Edge WebView2
 
 ```powershell
 npm install
-npm run tauri dev        # app in sviluppo
-npm run tauri build      # installer NSIS in src-tauri/target/release/bundle/nsis
+npm run tauri dev        # app in development
+npm run tauri build      # NSIS installer in src-tauri/target/release/bundle/nsis
 ```
 
-**Verifica**
+**Verification**
 
 ```powershell
-npm run build                                       # type-check e build del frontend
-cargo test --manifest-path src-tauri/Cargo.toml     # test del backend
-npm run test:e2e                                    # test dell'interfaccia (Playwright)
+npm run build                                       # type-check and frontend build
+cargo test --manifest-path src-tauri/Cargo.toml     # backend tests
+npm run test:e2e                                    # UI tests (Playwright)
 ```
 
-I test dell'interfaccia girano nel browser con un finto backend (`e2e/tauri-mock.ts`), quindi non serve compilare Rust per eseguirli.
+The UI tests run in the browser with a mock backend (`e2e/tauri-mock.ts`), so you do not need to compile Rust to run them.
 
-## Struttura del progetto
+## Project structure
 
 ```
-src/                    interfaccia React + TypeScript
-  components/           Scrivania, Bacheca, nastro, menu, dialoghi
-  editor/               estensioni Tiptap: immagini, sezioni, righe, ortografia
-  ui/                   forme Material, posizionamento dei menu, colori recenti
-  styles/global.css     tema Material Design 3 chiaro e scuro
-src-tauri/              backend Rust (Tauri 2)
-  src/                  comandi, database, validazione delle note, esportazione
-  migrations/           schema SQLite versionato
-  windows/              template e immagini dell'installer NSIS
-e2e/                    test Playwright
-scripts/                immagini dell'installer e generazione delle forme Material
+src/                    React + TypeScript interface
+  components/           Desk, Dashboard, ribbon, menus, dialogs
+  editor/               Tiptap extensions: images, sections, lines, spell checking
+  ui/                   Material shapes, menu positioning, recent colors
+  styles/global.css     light and dark Material Design 3 theme
+src-tauri/              Rust backend (Tauri 2)
+  src/                  commands, database, note validation, export
+  migrations/           versioned SQLite schema
+  windows/              NSIS installer templates and images
+e2e/                    Playwright tests
+scripts/                installer images and Material shape generation
 ```
 
 ## Feedback
 
-Il tuo parere aiuta a migliorare TypogNotes:
+Your feedback helps improve TypogNotes:
 
-- 💬 **[Discussioni](https://github.com/zSimone35/TypogNotes/discussions)**: commenti, domande, opinioni e idee da discutere.
-- 🐞 **[Segnala un problema](https://github.com/zSimone35/TypogNotes/issues/new?template=bug.yml)**: qualcosa non funziona.
-- 💡 **[Proponi un'idea](https://github.com/zSimone35/TypogNotes/issues/new?template=idea.yml)**: una funzione nuova o un miglioramento.
+- 💬 **[Discussions](https://github.com/zSimone35/TypogNotes/discussions)**: comments, questions, opinions and ideas to talk about.
+- 🐞 **[Report a problem](https://github.com/zSimone35/TypogNotes/issues/new?template=bug.yml)**: something is not working.
+- 💡 **[Suggest an idea](https://github.com/zSimone35/TypogNotes/issues/new?template=idea.yml)**: a new feature or an improvement.
 
-Serve un account GitHub (gratuito).
+A (free) GitHub account is required.
 
-## Licenza
+## License
 
-Distribuito con licenza [MIT](LICENSE). Le forme Material in `scripts/vendor/` derivano
-da AndroidX (Apache-2.0, vedi [`scripts/vendor/LICENSE`](scripts/vendor/LICENSE)).
+Released under the [MIT](LICENSE) license. The Material shapes in `scripts/vendor/` are derived
+from AndroidX (Apache-2.0, see [`scripts/vendor/LICENSE`](scripts/vendor/LICENSE)).
