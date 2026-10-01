@@ -218,3 +218,12 @@ test("un errore degli appunti non elimina il blocco", async ({ page }) => {
   await expect(menu.getByRole("alert")).toContainText("Accesso negato");
   await expect(page.locator(".collapsible-header")).toHaveCount(1);
 });
+
+test("le impostazioni mostrano versione e novità dal changelog", async ({ page }) => {
+  await page.getByRole("button", { name: /Impostazioni/ }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.locator(".settings-version")).toHaveText(/^TypogNotes \d+\.\d+\.\d+(-[\w.]+)? · versione di sviluppo$/);
+  await dialog.locator(".settings-release-notes").scrollIntoViewIfNeeded();
+  await expect(dialog.locator(".settings-release-notes li").first()).toBeVisible();
+  await page.screenshot({ path: "test-results/settings-info.png" });
+});

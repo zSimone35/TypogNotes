@@ -6,14 +6,14 @@ import { ColorGrid } from "./ColorGrid";
 import { recentColors, rememberColor } from "../ui/recentColors";
 import { FindAndReplacePluginKey } from "@tiptap/extension-find-and-replace";
 import { useEditorState, type Editor } from "@tiptap/react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlignCenter, AlignJustify, AlignLeft, AlignRight, Archive, Baseline, Bold, Check, ChevronDown, Download,
   ChevronLeft, ChevronRight, CircleAlert, Code2, Highlighter, Italic, List, ListOrdered,
   ImagePlus, ListTodo, Minus, PanelRightOpen, Redo2, RotateCcw, Search,
-  Strikethrough, Trash2, Underline, Undo2, X,
+  Strikethrough, Table2, Trash2, Underline, Undo2, X,
 } from "lucide-react";
-import type { AppSettings, EditorFont, ExportFormat, LineSpacing, PaperColor } from "../api/types";
+import type { EditorFont, ExportFormat, LineSpacing, PaperColor } from "../api/types";
 import { EDITOR_FONTS, EXPORT_FORMATS, LINE_SPACINGS, PAPER_COLORS } from "../options";
 import { runForTextSelections } from "../editor/multiSelection";
 
@@ -49,80 +49,23 @@ interface Props {
   onExport: (format: ExportFormat) => void;
   onEditorFontChange: (font: EditorFont) => void;
   onEditorFontSizeChange: (size: number) => void;
-  toolbarWidths: ToolbarWidths;
-  onToolbarWidthChange: (setting: ToolbarWidthSetting, width: number) => void;
 }
 
-export type ToolbarWidthSetting = keyof Pick<AppSettings,
-  "toolbarCharacterWidth" | "toolbarParagraphWidth" | "toolbarStylesWidth" | "toolbarNoteWidth" | "toolbarToolsWidth"
->;
-
-type ToolbarWidths = Pick<AppSettings, ToolbarWidthSetting>;
-
-const WIDTH_LIMITS: Record<ToolbarWidthSetting, { min: number; max: number }> = {
-  toolbarCharacterWidth: { min: 190, max: 360 },
-  toolbarParagraphWidth: { min: 190, max: 360 },
-  toolbarStylesWidth: { min: 180, max: 380 },
-  toolbarNoteWidth: { min: 180, max: 360 },
-  toolbarToolsWidth: { min: 90, max: 180 },
-};
-
-function ToolButton({ label, active, disabled, onClick, onContextMenu, children }: { onContextMenu?: React.MouseEventHandler<HTMLButtonElement>; label: string; active?: boolean; disabled?: boolean; onClick: () => void; children: React.ReactNode }) {
+export function ToolButton({ label, active, disabled, onClick, onContextMenu, children }: { onContextMenu?: React.MouseEventHandler<HTMLButtonElement>; label: string; active?: boolean; disabled?: boolean; onClick: () => void; children: React.ReactNode }) {
   return <button type="button" className={active ? "toolbar-button is-active" : "toolbar-button"} aria-label={label} title={label} aria-pressed={active} disabled={disabled} onContextMenu={onContextMenu} onClick={onClick}>{children}</button>;
 }
 
-function RibbonGroup({ label, className = "", onResize, onResizeBy, children }: { label: string; className?: string; onResize: (event: React.PointerEvent<HTMLSpanElement>) => void; onResizeBy: (delta: number) => void; children: React.ReactNode }) {
-  return <section className={`ribbon-group ${className}`} aria-label={label}><div className="ribbon-group-content">{children}</div><span className="ribbon-label">{label}</span><span className="ribbon-resizer" role="separator" aria-label={`Ridimensiona sezione ${label}`} aria-orientation="vertical" tabIndex={0} onPointerDown={onResize} onKeyDown={(event) => { if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); onResizeBy(event.key === "ArrowLeft" ? -10 : 10); } }} /></section>;
+function RibbonGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return <section className="ribbon-group" aria-label={label}>{children}</section>;
 }
 
 export function EditorToolbar(props: Props) {
   const { editor, readOnly } = props;
-  const [activeGroup, setActiveGroup] = useState("character");
-  const [toolbarWidths, setToolbarWidths] = useState(props.toolbarWidths);
-  const [compact, setCompact] = useState(false);
   const imageInput = useRef<HTMLInputElement>(null);
   const shapeMenu = useRef<HTMLDivElement>(null);
   const openShapes = (e: React.MouseEvent<HTMLButtonElement>) => { e.preventDefault(); showAnchoredPopover(e.currentTarget, shapeMenu.current); };
   const ruleMenu = useRef<HTMLDivElement>(null);
   const insertRule = (n: number) => { props.onRuleThicknessChange(n); editor.chain().focus().insertContent({ type: "horizontalRule", attrs: { thickness: n } }).run(); ruleMenu.current?.hidePopover(); };
-  const toolbarRef = useRef<HTMLDivElement>(null);
-  const stripRef = useRef<HTMLDivElement>(null);
-  const widthsRef = useRef(toolbarWidths);
-  widthsRef.current = toolbarWidths;
-
-  // The ribbon never squeezes a group below its content: when the groups together need more
-  // room than the toolbar has, it switches to one group at a time behind tabs.
-  // The measure is the same in both layouts (content is always max-content), so it cannot flip-flop.
-  useLayoutEffect(() => {
-    const toolbar = toolbarRef.current;
-    const strip = stripRef.current;
-    if (!toolbar || !strip) return;
-    const order: ToolbarWidthSetting[] = ["toolbarCharacterWidth", "toolbarParagraphWidth", "toolbarStylesWidth", "toolbarNoteWidth", "toolbarToolsWidth"];
-    const measure = () => {
-      const groups = [...strip.querySelectorAll<HTMLElement>(".ribbon-group")];
-      const needed = groups.reduce((sum, group, index) => {
-        const content = group.querySelector<HTMLElement>(".ribbon-group-content");
-        const style = getComputedStyle(group);
-        const chrome = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight) + parseFloat(style.borderRightWidth);
-        const contentWidth = Math.ceil((content?.getBoundingClientRect().width ?? 0) + chrome);
-        return sum + Math.max(widthsRef.current[order[index]!], contentWidth);
-      }, 0);
-      setCompact(needed > toolbar.clientWidth);
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(toolbar);
-    strip.querySelectorAll(".ribbon-group-content").forEach((content) => observer.observe(content));
-    void document.fonts.ready.then(measure);
-    return () => observer.disconnect();
-  }, [readOnly, toolbarWidths]);
-  useEffect(() => setToolbarWidths(props.toolbarWidths), [
-    props.toolbarWidths.toolbarCharacterWidth,
-    props.toolbarWidths.toolbarParagraphWidth,
-    props.toolbarWidths.toolbarStylesWidth,
-    props.toolbarWidths.toolbarNoteWidth,
-    props.toolbarWidths.toolbarToolsWidth,
-  ]);
 
   // With text selected font and size apply to the selection only; otherwise they are the note default.
   const selectionStyle = useEditorState({
@@ -146,52 +89,14 @@ export function EditorToolbar(props: Props) {
     else props.onEditorFontSizeChange(size);
   };
 
-  const setWidth = (setting: ToolbarWidthSetting, width: number, persist: boolean) => {
-    const limits = WIDTH_LIMITS[setting];
-    const bounded = Math.min(limits.max, Math.max(limits.min, Math.round(width)));
-    setToolbarWidths((current) => ({ ...current, [setting]: bounded }));
-    if (persist) props.onToolbarWidthChange(setting, bounded);
-  };
-
-  const beginResize = (setting: ToolbarWidthSetting, event: React.PointerEvent<HTMLSpanElement>) => {
-    event.preventDefault();
-    const startX = event.clientX;
-    const startWidth = toolbarWidths[setting];
-    let latestWidth = startWidth;
-    const onMove = (move: PointerEvent) => {
-      const limits = WIDTH_LIMITS[setting];
-      latestWidth = Math.min(limits.max, Math.max(limits.min, Math.round(startWidth + move.clientX - startX)));
-      setToolbarWidths((current) => ({ ...current, [setting]: latestWidth }));
-    };
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      props.onToolbarWidthChange(setting, latestWidth);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp, { once: true });
-  };
   if (readOnly) {
     return <div className="editor-toolbar editor-toolbar-readonly" role="toolbar" aria-label={props.trashed ? "Azioni nota nel Cestino" : "Azioni nota archiviata"}><span className="readonly-label">{props.trashed ? <Trash2 size={16} /> : <Archive size={16} />} {props.trashed ? "Nota nel Cestino, sola lettura" : "Nota archiviata, sola lettura"}</span><div className="toolbar-spacer" /><button type="button" className="toolbar-action" onClick={props.onRestore}><RotateCcw size={15} /> Ripristina</button>{!props.trashed && <ExportSelect value={props.defaultExportFormat} onExport={props.onExport} />}</div>;
   }
 
   return (
-    <div ref={toolbarRef} className={`editor-toolbar${props.findOpen ? " has-find" : ""}`} role="toolbar" aria-label="Formattazione nota">
-      <div ref={stripRef} className={`ribbon-strip${compact ? " is-compact" : ""}`} data-layout={compact ? "compact" : "full"} style={{
-        "--toolbar-character-width": `${toolbarWidths.toolbarCharacterWidth}px`,
-        "--toolbar-paragraph-width": `${toolbarWidths.toolbarParagraphWidth}px`,
-        "--toolbar-styles-width": `${toolbarWidths.toolbarStylesWidth}px`,
-        "--toolbar-note-width": `${toolbarWidths.toolbarNoteWidth}px`,
-        "--toolbar-tools-width": `${toolbarWidths.toolbarToolsWidth}px`,
-      } as React.CSSProperties}>
-        <nav className="ribbon-tabs" aria-label="Sezioni della barra strumenti">
-          <button type="button" className={activeGroup === "character" ? "is-active" : ""} onClick={() => setActiveGroup("character")} aria-pressed={activeGroup === "character"}>Carattere</button>
-          <button type="button" className={activeGroup === "paragraph" ? "is-active" : ""} onClick={() => setActiveGroup("paragraph")} aria-pressed={activeGroup === "paragraph"}>Paragrafo</button>
-          <button type="button" className={activeGroup === "styles" ? "is-active" : ""} onClick={() => setActiveGroup("styles")} aria-pressed={activeGroup === "styles"}>Stili</button>
-          <button type="button" className={activeGroup === "note" ? "is-active" : ""} onClick={() => setActiveGroup("note")} aria-pressed={activeGroup === "note"}>Nota</button>
-          <button type="button" className={activeGroup === "tools" ? "is-active" : ""} onClick={() => setActiveGroup("tools")} aria-pressed={activeGroup === "tools"}>Strumenti</button>
-        </nav>
-        <RibbonGroup label="Carattere" className={`ribbon-character${activeGroup === "character" ? " is-active" : ""}`} onResize={(event) => beginResize("toolbarCharacterWidth", event)} onResizeBy={(delta) => setWidth("toolbarCharacterWidth", toolbarWidths.toolbarCharacterWidth + delta, true)}>
+    <div className={`editor-toolbar${props.findOpen ? " has-find" : ""}`} role="toolbar" aria-label="Formattazione nota">
+      <div className="ribbon-strip">
+        <RibbonGroup label="Carattere">
           <div className="ribbon-row ribbon-select-row">
             <label className="toolbar-field toolbar-font"><span className="sr-only">Font</span><select aria-label={selectionStyle.hasSelection ? "Font del testo selezionato" : "Font della nota"} title={selectionStyle.hasSelection ? "Cambia il font del testo selezionato" : "Cambia il font delle note (seleziona del testo per cambiarlo solo lì)"} value={selectionFont} onChange={(event) => changeFont(event.target.value as EditorFont)}>{EDITOR_FONTS.map((font) => <option key={font.id} value={font.id}>{font.label}</option>)}</select></label>
             <label className="toolbar-field toolbar-font-size"><span className="toolbar-field-label">Testo</span><select aria-label={selectionStyle.hasSelection ? "Dimensione del testo selezionato" : "Dimensione del testo della nota"} value={selectionSize} onChange={(event) => changeFontSize(Number(event.target.value))}>{Array.from({ length: 17 }, (_, index) => 12 + index).map((size) => <option key={size} value={size}>{size} px</option>)}</select></label>
@@ -206,7 +111,7 @@ export function EditorToolbar(props: Props) {
           </div>
         </RibbonGroup>
 
-        <RibbonGroup label="Paragrafo" className={`ribbon-paragraph${activeGroup === "paragraph" ? " is-active" : ""}`} onResize={(event) => beginResize("toolbarParagraphWidth", event)} onResizeBy={(delta) => setWidth("toolbarParagraphWidth", toolbarWidths.toolbarParagraphWidth + delta, true)}>
+        <RibbonGroup label="Paragrafo">
           <div className="ribbon-row ribbon-align-row">
             <label className="toolbar-field toolbar-spacing"><span className="toolbar-field-label">Righe</span><select aria-label="Interlinea" value={props.lineSpacing} onChange={(event) => props.onLineSpacingChange(Number(event.target.value) as LineSpacing)}>{LINE_SPACINGS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
             <ToolButton label="Allinea a sinistra" active={editor.isActive({ textAlign: "left" })} onClick={() => editor.chain().focus().setTextAlign("left").run()}><AlignLeft size={20} /></ToolButton>
@@ -214,18 +119,9 @@ export function EditorToolbar(props: Props) {
             <ToolButton label="Allinea a destra" active={editor.isActive({ textAlign: "right" })} onClick={() => editor.chain().focus().setTextAlign("right").run()}><AlignRight size={20} /></ToolButton>
             <ToolButton label="Giustifica" active={editor.isActive({ textAlign: "justify" })} onClick={() => editor.chain().focus().setTextAlign("justify").run()}><AlignJustify size={20} /></ToolButton>
           </div>
-          <div className="ribbon-row ribbon-list-row">
-            <ToolButton label="Lista puntata" active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}><List size={18} /></ToolButton>
-            <ToolButton label="Lista numerata" active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}><ListOrdered size={18} /></ToolButton>
-            <ToolButton onContextMenu={openShapes} label="Checklist" active={editor.isActive("taskList")} onClick={() => editor.chain().focus().toggleTaskList().run()}><ListTodo size={18} /></ToolButton>
-            <ToolButton label="Blocco codice" active={editor.isActive("codeBlock")} onClick={() => editor.chain().focus().toggleCodeBlock().run()}><Code2 size={18} /></ToolButton>
-            <input ref={imageInput} type="file" hidden multiple accept="image/png,image/jpeg,image/webp,image/gif,image/bmp" onChange={e => { props.onInsertImages([...e.target.files ?? []]); e.target.value = ""; }} />
-            <ToolButton label="Inserisci immagine" onClick={() => imageInput.current?.click()}><ImagePlus size={18} /></ToolButton>
-            <ToolButton label="Inserisci divisore" active={editor.isActive("horizontalRule")} onContextMenu={e => { e.preventDefault(); showAnchoredPopover(e.currentTarget, ruleMenu.current); }} onClick={() => insertRule(props.ruleThickness)}><Minus size={18} /></ToolButton>
-          </div>
         </RibbonGroup>
 
-        <RibbonGroup label="Stili" className={`ribbon-styles${activeGroup === "styles" ? " is-active" : ""}`} onResize={(event) => beginResize("toolbarStylesWidth", event)} onResizeBy={(delta) => setWidth("toolbarStylesWidth", toolbarWidths.toolbarStylesWidth + delta, true)}>
+        <RibbonGroup label="Stili">
           <div className="style-gallery">
             <StyleButton label="Normale" sample="Aa" active={!editor.isActive("heading")} onClick={() => editor.chain().focus().setParagraph().run()} />
             <StyleButton label="Titolo 1" sample="H1" active={editor.isActive("heading", { level: 1 })} onClick={() => editor.chain().focus().setHeading({ level: 1 }).run()} />
@@ -234,7 +130,20 @@ export function EditorToolbar(props: Props) {
           </div>
         </RibbonGroup>
 
-        <RibbonGroup label="Nota" className={`ribbon-note${activeGroup === "note" ? " is-active" : ""}`} onResize={(event) => beginResize("toolbarNoteWidth", event)} onResizeBy={(delta) => setWidth("toolbarNoteWidth", toolbarWidths.toolbarNoteWidth + delta, true)}>
+        <RibbonGroup label="Inserisci">
+          <div className="ribbon-row">
+            <ToolButton label="Lista puntata" active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}><List size={18} /></ToolButton>
+            <ToolButton label="Lista numerata" active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}><ListOrdered size={18} /></ToolButton>
+            <ToolButton onContextMenu={openShapes} label="Checklist" active={editor.isActive("taskList")} onClick={() => editor.chain().focus().toggleTaskList().run()}><ListTodo size={18} /></ToolButton>
+            <ToolButton label="Blocco codice" active={editor.isActive("codeBlock")} onClick={() => editor.chain().focus().toggleCodeBlock().run()}><Code2 size={18} /></ToolButton>
+            <TableMenu editor={editor} />
+            <input ref={imageInput} type="file" hidden multiple accept="image/png,image/jpeg,image/webp,image/gif,image/bmp" onChange={e => { props.onInsertImages([...e.target.files ?? []]); e.target.value = ""; }} />
+            <ToolButton label="Inserisci immagine" onClick={() => imageInput.current?.click()}><ImagePlus size={18} /></ToolButton>
+            <ToolButton label="Inserisci divisore" active={editor.isActive("horizontalRule")} onContextMenu={e => { e.preventDefault(); showAnchoredPopover(e.currentTarget, ruleMenu.current); }} onClick={() => insertRule(props.ruleThickness)}><Minus size={18} /></ToolButton>
+          </div>
+        </RibbonGroup>
+
+        <RibbonGroup label="Nota">
           <div className="ribbon-note-controls">
             <PaperColorMenu dark={props.dark} value={props.paperColor} onChange={props.onPaperColorChange} />
             <ExportSelect value={props.defaultExportFormat} onExport={props.onExport} />
@@ -248,10 +157,10 @@ export function EditorToolbar(props: Props) {
           </div>
         </RibbonGroup>
 
-        <RibbonGroup label="Strumenti" className={`ribbon-tools${activeGroup === "tools" ? " is-active" : ""}`} onResize={(event) => beginResize("toolbarToolsWidth", event)} onResizeBy={(delta) => setWidth("toolbarToolsWidth", toolbarWidths.toolbarToolsWidth + delta, true)}>
+        <RibbonGroup label="Strumenti">
           <div className="ribbon-tools-row">
-            <button type="button" className={props.findOpen ? "toolbar-tool is-active" : "toolbar-tool"} onClick={() => props.onFindOpenChange(!props.findOpen)} title="Trova e sostituisci (Ctrl+F)"><Search size={18} /><span>Trova</span></button>
-            <button type="button" className={props.outlineOpen ? "toolbar-tool is-active" : "toolbar-tool"} onClick={props.onToggleOutline} title="Mostra l’indice della nota"><PanelRightOpen size={18} /><span>Indice</span></button>
+            <button type="button" className={props.findOpen ? "toolbar-tool is-active" : "toolbar-tool"} aria-label="Trova e sostituisci" onClick={() => props.onFindOpenChange(!props.findOpen)} title="Trova e sostituisci (Ctrl+F)"><Search size={18} /><span>Trova</span></button>
+            <button type="button" className={props.outlineOpen ? "toolbar-tool is-active" : "toolbar-tool"} aria-label="Indice" onClick={props.onToggleOutline} title="Mostra l’indice della nota"><PanelRightOpen size={18} /><span>Indice</span></button>
           </div>
         </RibbonGroup>
       </div>
@@ -260,6 +169,33 @@ export function EditorToolbar(props: Props) {
       {props.findOpen && <FindReplaceBar editor={editor} onClose={() => props.onFindOpenChange(false)} />}
     </div>
   );
+}
+
+const TABLE_MAX_ROWS = 8;
+const TABLE_MAX_COLS = 10;
+
+/** Word-style size picker: hover the grid to choose rows × columns, click to insert (first row is the header). */
+function TableMenu({ editor }: { editor: Editor }) {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ rows: 0, cols: 0 });
+  const insert = (rows: number, cols: number) => {
+    menuRef.current?.hidePopover();
+    editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
+  };
+  return <div className="toolbar-table">
+    <button ref={triggerRef} type="button" className={editor.isActive("table") ? "toolbar-button is-active" : "toolbar-button"} aria-label="Inserisci tabella" title="Inserisci tabella" aria-haspopup="menu" onClick={() => { setSize({ rows: 0, cols: 0 }); showAnchoredPopover(triggerRef.current, menuRef.current); }}><Table2 size={18} /></button>
+    <div ref={menuRef} className="paper-color-popover table-size-menu" popover="auto" role="menu" aria-label="Dimensione tabella">
+      <div className="table-size-grid" style={{ "--table-cols": TABLE_MAX_COLS } as React.CSSProperties} onPointerLeave={() => setSize({ rows: 0, cols: 0 })}>
+        {Array.from({ length: TABLE_MAX_ROWS * TABLE_MAX_COLS }, (_, index) => {
+          const rows = Math.floor(index / TABLE_MAX_COLS) + 1;
+          const cols = (index % TABLE_MAX_COLS) + 1;
+          return <button key={index} type="button" role="menuitem" aria-label={`Tabella ${rows} righe × ${cols} colonne`} className={rows <= size.rows && cols <= size.cols ? "is-selected" : undefined} onPointerEnter={() => setSize({ rows, cols })} onFocus={() => setSize({ rows, cols })} onClick={() => insert(rows, cols)} />;
+        })}
+      </div>
+      <p aria-live="polite">{size.rows ? `${size.rows} × ${size.cols}` : "Righe × colonne"}</p>
+    </div>
+  </div>;
 }
 
 function ColorPaletteMenu({ editor, noteId, highlight = false, customColors, onAddCustom }: { editor: Editor; noteId: number; highlight?: boolean; customColors: string[]; onAddCustom: (hex: string) => void }) {
@@ -279,7 +215,7 @@ function ColorPaletteMenu({ editor, noteId, highlight = false, customColors, onA
   return <div className={highlight ? "highlight-menu" : "color-tool"}><button ref={triggerRef} type="button" className="color-palette-trigger" aria-label={label} title={label} aria-haspopup="menu" style={{ "--active-color": color } as React.CSSProperties} onClick={open} onContextMenu={event => { event.preventDefault(); open(); }}>{highlight ? <Highlighter size={19} /> : <Baseline size={19} />}<span /></button><div ref={paletteRef} className="color-grid-popover" role="menu" aria-label={label} popover="auto"><ColorGrid label={label} recent={recent} customColors={customColors} onSelect={select} onAddCustom={onAddCustom} onClear={() => { runForTextSelections(editor, () => { const chain = editor.chain().focus(); (highlight ? chain.unsetHighlight() : chain.unsetColor()).run(); }); paletteRef.current?.hidePopover(); }} /></div></div>;
 }
 
-function PaperColorMenu({ value, onChange, dark }: { dark: boolean; value: PaperColor; onChange: (value: PaperColor) => void }) {
+export function PaperColorMenu({ value, onChange, dark }: { dark: boolean; value: PaperColor; onChange: (value: PaperColor) => void }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const selected = PAPER_COLORS.find((item) => item.id === value) ?? PAPER_COLORS[0]!;
@@ -335,10 +271,10 @@ function FindReplaceBar({ editor, onClose }: { editor: Editor; onClose: () => vo
 }
 
 function StyleButton({ label, sample, active, onClick }: { label: string; sample: string; active: boolean; onClick: () => void }) {
-  return <button type="button" className={active ? "style-button is-active" : "style-button"} aria-pressed={active} onClick={onClick}><strong>{sample}</strong><small>{label}</small></button>;
+  return <button type="button" className={active ? "style-button is-active" : "style-button"} aria-label={label} title={label} aria-pressed={active} onClick={onClick}><strong>{sample}</strong><small>{label}</small></button>;
 }
 
-function ExportSelect({ value, onExport }: { value: ExportFormat; onExport: (format: ExportFormat) => void }) {
+export function ExportSelect({ value, onExport }: { value: ExportFormat; onExport: (format: ExportFormat) => void }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   return <div className="toolbar-export"><button ref={triggerRef} type="button" className="paper-color-trigger" aria-label="Esporta nota" aria-haspopup="menu" onClick={() => showAnchoredPopover(triggerRef.current, menuRef.current)}><Download size={16} /><span>Esporta</span><ChevronDown size={12} /></button><div ref={menuRef} className="paper-color-popover export-menu" role="menu" aria-label="Esporta nota" popover="auto">{EXPORT_FORMATS.map((format) => <button key={format.id} type="button" role="menuitem" onClick={() => { menuRef.current?.hidePopover(); onExport(format.id); }}>{format.label}{format.id === value ? " (predefinito)" : ""}</button>)}</div></div>;

@@ -24,7 +24,7 @@ const SUMMARY_COLUMNS: &str = "
     substr(n.plain_text, 1, 180), n.paper_color, n.line_spacing, n.paper_width, n.position, n.pinned, n.needs_attention,
     (SELECT COUNT(*) FROM attachments a WHERE a.note_id = n.id),
     n.revision, n.archived_at, n.origin_folder_name,
-    n.created_at, n.updated_at, n.trashed_at, n.bullet_shape, n.checkbox_shape
+    n.created_at, n.updated_at, n.trashed_at, n.bullet_shape, n.checkbox_shape, n.kind
 ";
 
 const FOLDER_ICONS: &[&str] = &[
@@ -582,13 +582,18 @@ pub fn create_note(
             |row| row.get(0),
         )
         .map_err(|error| format!("Non è possibile ordinare la nuova nota: {error}"))?;
-    let content = empty_document();
+    let kind = input.kind.as_deref().unwrap_or("text");
+    let content = match kind {
+        "text" => empty_document(),
+        "drawing" => crate::drawing::empty_drawing(),
+        _ => return Err("Il tipo di nota non è valido.".to_string()),
+    };
     let content_json = serde_json::to_string(&content)
         .map_err(|error| format!("Non è possibile preparare la nuova nota: {error}"))?;
     connection
         .execute(
-            "INSERT INTO notes (folder_id, title, subtitle, content_json, plain_text, paper_color, line_spacing, position, created_at, updated_at) VALUES (?1, 'Senza titolo', '', ?2, '', 'cream', ?3, ?4, ?5, ?5)",
-            params![input.folder_id, content_json, line_spacing, position, now],
+            "INSERT INTO notes (folder_id, title, subtitle, content_json, plain_text, paper_color, line_spacing, position, created_at, updated_at, kind) VALUES (?1, 'Senza titolo', '', ?2, '', 'cream', ?3, ?4, ?5, ?5, ?6)",
+            params![input.folder_id, content_json, line_spacing, position, now, kind],
         )
         .map_err(|error| format!("Non è possibile creare la nota: {error}"))?;
     let note_id = connection.last_insert_rowid();
@@ -641,11 +646,17 @@ pub fn save_note(input: SaveNoteInput, state: State<'_, AppState>) -> Result<Sav
     for shape in [&input.bullet_shape, &input.checkbox_shape].into_iter().flatten() {
         if !SHAPES.contains(&shape.as_str()) { return Err("La forma selezionata non è valida.".into()); }
     }
-    let plain_text = validate_and_extract(&input.content)?;
     let content_json = serde_json::to_string(&input.content)
         .map_err(|error| format!("Non è possibile serializzare la nota: {error}"))?;
     let now = now_ms()?;
     let connection = lock_connection(&state)?;
+    // The kind comes from the database, never from the client.
+    let kind: String = connection
+        .query_row("SELECT kind FROM notes WHERE id = ?1", [input.id], |row| row.get(0))
+        .optional()
+        .map_err(|error| format!("Non è possibile leggere la nota: {error}"))?
+        .ok_or_else(|| "La nota non esiste più.".to_string())?;
+    let plain_text = validate_content(&kind, &input.content)?;
     for id in crate::db::attachment_ids(&input.content) {
         let owned: bool = connection.query_row("SELECT EXISTS(SELECT 1 FROM attachments WHERE id=?1 AND note_id=?2)", params![id,input.id], |r| r.get(0)).map_err(|e| e.to_string())?;
         if !owned { return Err("Un'immagine non appartiene alla nota. Attendi il completamento dell'incolla.".into()); }
@@ -876,7 +887,7 @@ pub async fn export_note(
     }
     let (title, subtitle, paper_color, line_spacing, editor_font, editor_font_size, document) = {
         let connection = lock_connection(&state)?;
-        let (title, subtitle, content_json, paper_color, line_spacing, editor_font, editor_font_size): (
+        let (title, subtitle, content_json, paper_color, line_spacing, editor_font, editor_font_size, kind): (
             String,
             String,
             String,
@@ -884,18 +895,19 @@ pub async fn export_note(
             i64,
             String,
             i64,
+            String,
         ) = connection
             .query_row(
-                "SELECT n.title, n.subtitle, n.content_json, n.paper_color, n.line_spacing, s.editor_font, s.editor_font_size FROM notes n CROSS JOIN settings s WHERE n.id = ?1 AND n.trashed_at IS NULL AND s.id = 1",
+                "SELECT n.title, n.subtitle, n.content_json, n.paper_color, n.line_spacing, s.editor_font, s.editor_font_size, n.kind FROM notes n CROSS JOIN settings s WHERE n.id = ?1 AND n.trashed_at IS NULL AND s.id = 1",
                 [input.id],
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?)),
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?)),
             )
             .optional()
             .map_err(|error| format!("Non è possibile leggere la nota da esportare: {error}"))?
             .ok_or_else(|| "La nota non esiste più.".to_string())?;
         let document: Value = serde_json::from_str(&content_json)
             .map_err(|error| format!("Il contenuto della nota non è valido: {error}"))?;
-        validate_and_extract(&document)?;
+        validate_content(&kind, &document)?;
         (
             title,
             subtitle,
@@ -1073,7 +1085,8 @@ fn read_note_detail(connection: &Connection, note_id: i64) -> Result<NoteDetail,
     );
     let (summary, content_json) = connection
         .query_row(&sql, [note_id], |row| {
-            Ok((note_summary_from_row(row)?, row.get::<_, String>(21)?))
+            // By name: the summary columns can grow without shifting the content.
+            Ok((note_summary_from_row(row)?, row.get::<_, String>("content_json")?))
         })
         .optional()
         .map_err(|error| format!("Non è possibile leggere la nota: {error}"))?
@@ -1128,6 +1141,7 @@ fn note_summary_from_row(row: &Row<'_>) -> rusqlite::Result<NoteSummary> {
         updated_at: row.get(17)?,
         trashed_at: row.get(18)?,
         bullet_shape: row.get(19)?, checkbox_shape: row.get(20)?,
+        kind: row.get(21)?,
     })
 }
 
@@ -1246,13 +1260,37 @@ fn safe_file_name(title: &str) -> String {
     }
 }
 
+/// Validates a note body with the rules of its kind; returns the text indexed for search.
+fn validate_content(kind: &str, document: &Value) -> Result<String, String> {
+    if kind == "drawing" {
+        crate::drawing::validate_drawing(document).map(|()| String::new())
+    } else {
+        validate_and_extract(document)
+    }
+}
+
 fn empty_document() -> Value {
     json!({ "schemaVersion": 1, "type": "doc", "content": [{"type": "paragraph"}] })
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{dictionary_source, safe_file_name, validate_dictionary_language, validate_folder};
+    use super::{dictionary_source, read_note_detail, safe_file_name, validate_dictionary_language, validate_folder};
+
+    #[test]
+    fn reads_text_and_drawing_notes_from_a_migrated_database() {
+        let mut connection = rusqlite::Connection::open_in_memory().unwrap();
+        crate::db::migrate(&mut connection).unwrap();
+        crate::db::seed_first_run(&mut connection).unwrap();
+        let text = read_note_detail(&connection, 1).expect("seeded text note");
+        assert_eq!(text.summary.kind, "text");
+        assert_eq!(text.content["type"], "doc");
+        let drawing = serde_json::to_string(&crate::drawing::empty_drawing()).unwrap();
+        connection.execute("INSERT INTO notes (id, folder_id, title, content_json, created_at, updated_at, kind) VALUES (2, 1, 'Schizzo', ?1, 1, 1, 'drawing')", [drawing]).unwrap();
+        let drawing = read_note_detail(&connection, 2).expect("drawing note");
+        assert_eq!(drawing.summary.kind, "drawing");
+        assert_eq!(drawing.content["type"], "drawing");
+    }
 
     #[test]
     fn attachment_formats_and_settings_boundaries() {

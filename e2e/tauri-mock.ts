@@ -50,7 +50,6 @@ export async function installTauriMock(page: Page) {
     if (query.has("many")) notes.push(...Array.from({ length: 100 }, (_, i) => ({ ...note, id: i + 3, title: `Nota ${i + 3}`, position: i + 2 })));
     const folders = [folder, ...(query.has("many") ? [{ ...folder, id: 2, name: "Idee", noteCount: 0 }] : [])];
     const settings = { bulletShape: "circle", checkboxShape: "square", customColors: [], theme: "soft", interfaceFont: "jakarta", editorFont: query.get("font") ?? "jakarta", editorFontSize: Number(query.get("size") ?? 16), monospaceFont: "jetbrains", defaultLineSpacing: 2, layoutDensity: "balanced", sidebarWidth: 260, spellcheck: query.has("typos"), defaultExportFormat: "markdown", lastView: "dashboard", lastFolderId: 1, lastNoteId: 1, dashboardView: "grid", dictionaryLanguage: "it", toolbarCharacterWidth: 226, toolbarParagraphWidth: 220, toolbarStylesWidth: 220, toolbarNoteWidth: 220, toolbarToolsWidth: 104 };
-    if (query.has("wideToolbar")) Object.assign(settings, { toolbarCharacterWidth: 360, toolbarParagraphWidth: 360, toolbarStylesWidth: 380, toolbarNoteWidth: 360, toolbarToolsWidth: 180 });
     const calls: Array<{ command: string; args: unknown }> = [];
     Object.assign(window, { __mockCalls: calls, __TAURI_INTERNALS__: {
       transformCallback: () => 1,
@@ -68,7 +67,10 @@ export async function installTauriMock(page: Page) {
         }
         if (command === "create_folder") return { ...folder, id: 100 + calls.length, name: args.input?.name ?? "Nuova", icon: args.input?.icon ?? "folder", color: args.input?.color ?? "sand", noteCount: 0 };
         if (command === "update_folder") return { ...folder, ...args.input };
-        if (command === "create_note") return { ...note, id: 200 + calls.length, title: "Senza titolo", folderId: args.input?.folderId ?? 1 };
+        if (command === "create_note") {
+          const drawing = args.input?.kind === "drawing";
+          return { ...note, id: 200 + calls.length, title: "Senza titolo", folderId: args.input?.folderId ?? 1, kind: drawing ? "drawing" : "text", revision: 1, content: drawing ? { schemaVersion: 1, type: "drawing", background: "lines", height: 1414, strokes: [] } : note.content };
+        }
         if (command === "get_note") return args.input?.id === 9 ? { ...note, id: 9, title: "Nota nel cestino", trashedAt: now } : notes.find((item) => item.id === args.input?.id) ?? note;
         if (command === "dashboard_overview") return { totalActive: 2, recentlyUpdated: 2, needsAttentionCount: 0, pinnedCount: 0, archiveCount: 0, trashCount: 0, recentActivity: [], mostUsedFolders: [], needsAttentionNotes: [] };
         if (command === "check_spelling") return query.has("typos") ? args.input.words.filter((w: string) => ["erore", "sbaliato"].includes(w) && !args.input.ignored.includes(w)).map((word: string) => ({ word, suggestions: [] })) : [];

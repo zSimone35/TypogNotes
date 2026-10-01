@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Archive, CheckSquare2, CircleAlert, GripVertical, MoreHorizontal, Pin, PinOff, Trash2, X } from "lucide-react";
+import { Archive, CheckSquare2, CircleAlert, GripVertical, MoreHorizontal, PenLine, Pin, PinOff, Trash2, X } from "lucide-react";
 import type { Folder as FolderModel, NoteSummary } from "../api/types";
 import { BulkActions } from "./BulkActions";
 import { placeMenu } from "../ui/placeMenu";
@@ -51,9 +51,9 @@ export function NoteStrip({ folders, activeNote, organizeNotes, setOrganizeNotes
                         {canReorder && !note.pinned && <button type="button" className="note-drag-handle" title="Trascina la scheda oppure usa le frecce sinistra/destra" aria-label={`Riordina ${note.title}: frecce sinistra e destra`} onKeyDown={(event) => moveNoteWithKeyboard(event, note.id)}><GripVertical size={14} /></button>}
                         {organizeNotes && <input className="note-select" type="checkbox" aria-label={`Seleziona ${note.title}`} checked={selectedNoteIds.has(note.id)} onChange={() => setSelectedNoteIds((current) => { const next = new Set(current); if (next.has(note.id)) next.delete(note.id); else next.add(note.id); return next; })} />}
                         <button type="button" className="note-card-main" onClick={() => { if (organizeNotes) { setSelectedNoteIds((current) => { const next = new Set(current); if (next.has(note.id)) next.delete(note.id); else next.add(note.id); return next; }); } else void openNote(note.id); }}>
-                          <span className="note-card-meta"><time>{shortDate(note.updatedAt)}</time>{note.pinned && <span className="note-status" title="In evidenza"><Pin size={12} /><span className="sr-only">In evidenza</span></span>}{note.needsAttention && <span className="note-status needs-attention" title="Da sistemare"><CircleAlert size={12} /><span className="sr-only">Da sistemare</span></span>}</span>
+                          <span className="note-card-meta"><time>{shortDate(note.updatedAt)}</time>{note.kind === "drawing" && <span className="note-status" title="Nota disegno"><PenLine size={12} /><span className="sr-only">Nota disegno</span></span>}{note.pinned && <span className="note-status" title="In evidenza"><Pin size={12} /><span className="sr-only">In evidenza</span></span>}{note.needsAttention && <span className="note-status needs-attention" title="Da sistemare"><CircleAlert size={12} /><span className="sr-only">Da sistemare</span></span>}</span>
                           <strong>{note.title}</strong>
-                          <span className="note-preview">{note.subtitle || note.preview || "Nota vuota"}</span>
+                          <span className="note-preview">{note.subtitle || note.preview || (note.kind === "drawing" ? "Disegno a mano" : "Nota vuota")}</span>
                         </button>
                         {!organizeNotes && <button type="button" className="note-menu-trigger" aria-label={`Azioni per ${note.title}`} aria-expanded={noteMenuId === note.id} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { if (noteMenuId === note.id) { setNoteMenuId(null); return; } const rect = event.currentTarget.getBoundingClientRect(); openNoteMenu(note.id, rect.right - 190, rect.bottom + 4); }}><MoreHorizontal size={16} /></button>}
                         {noteMenuId === note.id && createPortal(<div className="note-card-menu" role="menu" aria-label={`Azioni per ${note.title}`} style={noteMenuPosition} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => { if (event.key === "Escape") setNoteMenuId(null); }}>

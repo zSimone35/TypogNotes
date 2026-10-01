@@ -1,5 +1,6 @@
 mod commands;
 mod db;
+mod drawing;
 mod editor;
 mod export;
 mod models;
@@ -8,6 +9,16 @@ use tauri::{Manager, PhysicalSize};
 use tauri_plugin_window_state::{StateFlags, WindowExt};
 
 pub fn run() -> tauri::Result<()> {
+    let mut context = tauri::generate_context!();
+    // Debug builds get their own identity, so `tauri dev` never shares data with the installed app.
+    if cfg!(debug_assertions) {
+        let config = context.config_mut();
+        config.identifier.push_str(".dev");
+        config.product_name = Some("TypogNotes Dev".into());
+        for window in &mut config.app.windows {
+            window.title = "TypogNotes Dev".into();
+        }
+    }
     let window_flags = StateFlags::SIZE | StateFlags::POSITION | StateFlags::MAXIMIZED;
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -75,7 +86,7 @@ pub fn run() -> tauri::Result<()> {
             commands::window_print,
             commands::window_close,
         ])
-        .run(tauri::generate_context!())
+        .run(context)
 }
 
 fn preferred_window_size(screen_width: u32, screen_height: u32) -> (u32, u32) {

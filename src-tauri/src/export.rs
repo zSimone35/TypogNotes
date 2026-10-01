@@ -5,6 +5,10 @@ pub fn render_markdown(title: &str, subtitle: &str, document: &Value) -> String 
     if !subtitle.trim().is_empty() {
         output.push_str(&format!("_{}_\n\n", escape_markdown(subtitle.trim())));
     }
+    if document.get("type").and_then(Value::as_str) == Some("drawing") {
+        output.push_str(&crate::drawing::render_svg(document));
+        output.push('\n');
+    }
     if let Some(nodes) = document.get("content").and_then(Value::as_array) {
         for node in nodes {
             render_markdown_node(node, 0, &mut output);
@@ -28,6 +32,9 @@ pub fn render_html(
             "<p class=\"note-subtitle\">{}</p>",
             escape_html(subtitle.trim())
         ));
+    }
+    if document.get("type").and_then(Value::as_str) == Some("drawing") {
+        body.push_str(&crate::drawing::render_svg(document));
     }
     if let Some(nodes) = document.get("content").and_then(Value::as_array) {
         for node in nodes {
@@ -77,7 +84,7 @@ pub fn render_html(
         _ => "Roboto, 'Segoe UI', sans-serif",
     };
     let styles = format!(
-        "body{{margin:0;background:#eee9e2;color:#302b27;font-family:{font};font-size:{editor_font_size}px}}main{{box-sizing:border-box;width:min(900px,calc(100% - 40px));min-height:100vh;margin:0 auto;padding:64px 72px;background:{paper}}}.note-title{{margin:0;font-family:Roboto,'Segoe UI',sans-serif;font-size:42px}}.note-subtitle{{margin:10px 0 34px;color:#746b64;font-size:18px}}p,li{{line-height:{leading}px}}h1,h2,h3{{font-family:Roboto,'Segoe UI',sans-serif}}hr{{height:{leading}px;margin:0 5px;background:linear-gradient(#9b7b5d,#9b7b5d) center/100% 2px no-repeat;border:0}}pre{{overflow:auto;padding:18px;border-radius:10px;background:#22252a;color:#f4eee7}}details{{margin:20px 0;border:1px solid #c8b7a5;border-radius:8px}}summary{{padding:10px 14px;font-family:Roboto,'Segoe UI',sans-serif;font-weight:700;cursor:pointer}}details>div{{padding:0 18px 14px 28px}}mark{{padding:1px 3px;border-radius:3px}}@media print{{body{{background:white}}main{{width:auto;margin:0;padding:20mm;box-shadow:none}}details{{display:block}}details>div{{display:block!important}}}}"
+        "body{{margin:0;background:#eee9e2;color:#302b27;font-family:{font};font-size:{editor_font_size}px}}main{{box-sizing:border-box;width:min(900px,calc(100% - 40px));min-height:100vh;margin:0 auto;padding:64px 72px;background:{paper}}}.note-title{{margin:0;font-family:Roboto,'Segoe UI',sans-serif;font-size:42px}}.note-subtitle{{margin:10px 0 34px;color:#746b64;font-size:18px}}p,li{{line-height:{leading}px}}h1,h2,h3{{font-family:Roboto,'Segoe UI',sans-serif}}hr{{height:{leading}px;margin:0 5px;background:linear-gradient(#9b7b5d,#9b7b5d) center/100% 2px no-repeat;border:0}}pre{{overflow:auto;padding:18px;border-radius:10px;background:#22252a;color:#f4eee7}}details{{margin:20px 0;border:1px solid #c8b7a5;border-radius:8px}}summary{{padding:10px 14px;font-family:Roboto,'Segoe UI',sans-serif;font-weight:700;cursor:pointer}}details>div{{padding:0 18px 14px 28px}}table{{width:100%;border-collapse:collapse}}td,th{{padding:0 8px;border:1px solid #c8b7a5;text-align:left;vertical-align:top}}th{{background:#0000000d}}td>p,th>p{{margin:0}}mark{{padding:1px 3px;border-radius:3px}}@media print{{body{{background:white}}main{{width:auto;margin:0;padding:20mm;box-shadow:none}}details{{display:block}}details>div{{display:block!important}}}}"
     );
     format!(
         "<!doctype html><html lang=\"it\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{}</title><style>{}</style></head><body><main>{}</main></body></html>",
@@ -157,6 +164,28 @@ fn render_markdown_node(node: &Value, depth: usize, output: &mut String) {
             }
         }
         "image" => output.push_str("[Immagine allegata]\n\n"),
+        "table" => {
+            // GitHub-flavoured Markdown: the first row is the header, merged cells are flattened.
+            let rows = node.get("content").and_then(Value::as_array).cloned().unwrap_or_default();
+            for (index, row) in rows.iter().enumerate() {
+                let cells = row.get("content").and_then(Value::as_array).cloned().unwrap_or_default();
+                let texts: Vec<String> = cells
+                    .iter()
+                    .map(|cell| {
+                        cell.get("content")
+                            .and_then(Value::as_array)
+                            .map(|blocks| blocks.iter().map(markdown_inline).collect::<Vec<_>>().join("<br>"))
+                            .unwrap_or_default()
+                            .replace('|', "\\|")
+                    })
+                    .collect();
+                output.push_str(&format!("| {} |\n", texts.join(" | ")));
+                if index == 0 {
+                    output.push_str(&format!("|{}\n", " --- |".repeat(texts.len().max(1))));
+                }
+            }
+            output.push('\n');
+        }
         _ => {
             if let Some(children) = node.get("content").and_then(Value::as_array) {
                 for child in children {
@@ -291,6 +320,34 @@ fn render_html_node(node: &Value, output: &mut String) {
             output.push_str(&format!("</{tag}>"));
         }
         "image" => output.push_str("<p>[Immagine allegata]</p>"),
+        "table" | "tableRow" => {
+            let tag = if node_type == "table" { "table" } else { "tr" };
+            output.push_str(&format!("<{tag}>"));
+            if let Some(children) = node.get("content").and_then(Value::as_array) {
+                for child in children {
+                    render_html_node(child, output);
+                }
+            }
+            output.push_str(&format!("</{tag}>"));
+        }
+        "tableCell" | "tableHeader" => {
+            let tag = if node_type == "tableHeader" { "th" } else { "td" };
+            let span = |key: &str| {
+                node.get("attrs")
+                    .and_then(|attrs| attrs.get(key))
+                    .and_then(Value::as_i64)
+                    .filter(|n| *n > 1)
+                    .map(|n| format!(" {key}=\"{n}\""))
+                    .unwrap_or_default()
+            };
+            output.push_str(&format!("<{tag}{}{}>", span("colspan"), span("rowspan")));
+            if let Some(children) = node.get("content").and_then(Value::as_array) {
+                for child in children {
+                    render_html_node(child, output);
+                }
+            }
+            output.push_str(&format!("</{tag}>"));
+        }
         _ => {
             if let Some(children) = node.get("content").and_then(Value::as_array) {
                 for child in children {
@@ -464,5 +521,19 @@ mod tests {
         assert!(html.contains("background:#eaf6e3"));
         assert!(html.contains("font-size:18px"));
         assert!(html.contains("line-height:32px"));
+    }
+
+    #[test]
+    fn tables_export_to_markdown_and_html() {
+        let cell = |kind: &str, text: &str| json!({"type": kind, "content": [{"type": "paragraph", "content": [{"type": "text", "text": text}]}]});
+        let document = json!({"schemaVersion": 1, "type": "doc", "content": [{"type": "table", "content": [
+            {"type": "tableRow", "content": [cell("tableHeader", "Nome"), cell("tableHeader", "Voto")]},
+            {"type": "tableRow", "content": [cell("tableCell", "Ada|B"), cell("tableCell", "10")]}
+        ]}]});
+        let markdown = render_markdown("T", "", &document);
+        assert!(markdown.contains("| Nome | Voto |\n| --- | --- |\n| Ada\\|B | 10 |"), "{markdown}");
+        let mut html = String::new();
+        super::render_html_node(&document["content"][0], &mut html);
+        assert!(html.starts_with("<table><tr><th><p>Nome</p></th>") && html.ends_with("<td><p>10</p></td></tr></table>"), "{html}");
     }
 }

@@ -58,11 +58,11 @@ pub fn now_ms() -> Result<i64, String> {
     i64::try_from(millis).map_err(|_| "Il timestamp corrente non è rappresentabile.".to_string())
 }
 
-fn migrate(connection: &mut Connection) -> Result<(), String> {
+pub(crate) fn migrate(connection: &mut Connection) -> Result<(), String> {
     let mut version: i64 = connection
         .query_row("PRAGMA user_version", [], |row| row.get(0))
         .map_err(|error| format!("Non è possibile leggere la versione del database: {error}"))?;
-    if version > 10 {
+    if version > 11 {
         return Err(
             "Il database è stato creato da una versione più recente di TypogNotes.".to_string(),
         );
@@ -126,11 +126,17 @@ fn migrate(connection: &mut Connection) -> Result<(), String> {
     if version == 9 {
         connection.execute_batch(include_str!("../migrations/010_palette_shapes.sql"))
             .map_err(|error| format!("Non è possibile aggiornare colori e forme: {error}"))?;
+        version = 10;
+    }
+    if version == 10 {
+        connection
+            .execute_batch(include_str!("../migrations/011_note_kind.sql"))
+            .map_err(|error| format!("Non è possibile aggiungere le note disegno: {error}"))?;
     }
     Ok(())
 }
 
-fn seed_first_run(connection: &mut Connection) -> Result<(), String> {
+pub(crate) fn seed_first_run(connection: &mut Connection) -> Result<(), String> {
     let folder_count: i64 = connection
         .query_row("SELECT COUNT(*) FROM folders", [], |row| row.get(0))
         .map_err(|error| format!("Non è possibile controllare il primo avvio: {error}"))?;
@@ -211,7 +217,9 @@ mod tests {
         assert!(!db.prepare("PRAGMA foreign_key_check").unwrap().exists([]).unwrap());
         db.execute("UPDATE notes SET paper_color='slate'", []).unwrap();
         assert!(db.execute("UPDATE notes SET paper_color='neon'", []).is_err());
-        assert_eq!(db.query_row("PRAGMA user_version", [], |r| r.get::<_,i64>(0)).unwrap(), 10);
+        assert_eq!(db.query_row("PRAGMA user_version", [], |r| r.get::<_,i64>(0)).unwrap(), 11);
+        assert_eq!(db.query_row("SELECT kind FROM notes WHERE id=1", [], |r| r.get::<_,String>(0)).unwrap(), "text");
+        assert!(db.execute("UPDATE notes SET kind='sketch'", []).is_err());
     }
 
     #[test]
@@ -253,7 +261,7 @@ mod tests {
                 |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
             )
             .expect("toolbar widths");
-        assert_eq!(version, 10);
+        assert_eq!(version, 11);
         assert_eq!(default_spacing, 2);
         assert_eq!(toolbar_widths, (226, 220, 220, 220, 104));
     }

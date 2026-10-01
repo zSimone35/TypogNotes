@@ -1,7 +1,7 @@
 {
   "name": "typognotes",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.1.0-beta.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -22,6 +22,7 @@
     "@tiptap/extension-find-and-replace": "^3.31.3",
     "@tiptap/extension-highlight": "^3.31.3",
     "@tiptap/extension-horizontal-rule": "^3.31.3",
+    "@tiptap/extension-table": "^3.31.3",
     "@tiptap/extension-task-item": "^3.31.3",
     "@tiptap/extension-task-list": "^3.31.3",
     "@tiptap/extension-text-align": "^3.31.3",
@@ -37,6 +38,7 @@
     "highlight.js": "^11.11.1",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.547.0",
+    "perfect-freehand": "^1.2.3",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },

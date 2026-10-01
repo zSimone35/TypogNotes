@@ -57,7 +57,7 @@ export function CollectionView({ kind, notes, folders, onOpen, onRestore, onDele
           <span className="dashboard-note-icon">{kind === "archive" ? <Archive size={17} /> : <Trash2 size={17} />}</span>
           <div className="dashboard-note-copy">
             <div className="dashboard-note-title"><h3>{note.title || "Senza titolo"}</h3></div>
-            <p>{note.subtitle || note.preview || "Nota vuota"}</p>
+            <p>{note.subtitle || note.preview || (note.kind === "drawing" ? "Disegno a mano" : "Nota vuota")}</p>
             <footer><span><Folder size={12} /> {note.folderName ?? note.originFolderName ?? "Senza cartella"}</span><time>{shortDate((kind === "archive" ? note.archivedAt : note.trashedAt) ?? note.updatedAt)}</time></footer>
           </div>
         </button>

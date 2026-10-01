@@ -19,6 +19,10 @@ const NODE_TYPES: &[&str] = &[
     "collapsibleBlock",
     "horizontalRule",
     "image",
+    "table",
+    "tableRow",
+    "tableHeader",
+    "tableCell",
 ];
 
 const MARK_TYPES: &[&str] = &[
@@ -218,6 +222,25 @@ fn validate_attributes(node_type: &str, attrs: Option<&Value>) -> Result<(), Str
             }
             if !matches!(attrs.get("open"), Some(Value::Bool(_))) {
                 return Err("Lo stato del blocco a scomparsa non è valido.".to_string());
+            }
+        }
+        "tableCell" | "tableHeader" => {
+            if let Some(attrs) = attrs.and_then(Value::as_object) {
+                for key in ["colspan", "rowspan"] {
+                    if let Some(value) = attrs.get(key) {
+                        if !value.as_i64().is_some_and(|n| (1..=50).contains(&n)) {
+                            return Err("L'unione delle celle della tabella non è valida.".into());
+                        }
+                    }
+                }
+                if let Some(widths) = attrs.get("colwidth").filter(|value| !value.is_null()) {
+                    let valid = widths.as_array().is_some_and(|widths| {
+                        widths.len() <= 50 && widths.iter().all(|width| width.as_i64().is_some_and(|n| (10..=4000).contains(&n)))
+                    });
+                    if !valid {
+                        return Err("La larghezza di una colonna della tabella non è valida.".into());
+                    }
+                }
             }
         }
         "horizontalRule" => {
@@ -501,5 +524,21 @@ mod tests {
             "content": [{"type": "paragraph", "content": [{"type": "text", "text": "x", "marks": [{"type": "textStyle", "attrs": {"color": "rgb(0,255,0)"}}]}]}]
         });
         assert!(validate_and_extract(&invalid_color).is_err());
+    }
+
+    fn table(cell_attrs: serde_json::Value) -> serde_json::Value {
+        json!({"schemaVersion": 1, "type": "doc", "content": [{"type": "table", "content": [
+            {"type": "tableRow", "content": [{"type": "tableHeader", "attrs": cell_attrs, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Nome"}]}]}]},
+            {"type": "tableRow", "content": [{"type": "tableCell", "attrs": {"colspan": 1, "rowspan": 1, "colwidth": null}, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Ada"}]}]}]}
+        ]}]})
+    }
+
+    #[test]
+    fn tables_are_accepted_with_valid_cell_attributes() {
+        let text = validate_and_extract(&table(json!({"colspan": 2, "rowspan": 1, "colwidth": [120, 80]}))).expect("valid table");
+        assert!(text.contains("Nome") && text.contains("Ada"));
+        assert!(validate_and_extract(&table(json!({"colspan": 0}))).is_err());
+        assert!(validate_and_extract(&table(json!({"colwidth": [5]}))).is_err());
+        assert!(validate_and_extract(&table(json!({"colwidth": "wide"}))).is_err());
     }
 }

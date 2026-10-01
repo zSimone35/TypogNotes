@@ -15,6 +15,29 @@ export type DictionaryLanguage = "it" | "en" | "fr" | "es" | "de";
 export type NoteCondition = "all" | "recent" | "attention" | "pinned";
 export type NoteOrder = "recent" | "oldest" | "title";
 
+export type NoteKind = "text" | "drawing";
+export type DrawingTool = "pen" | "highlighter";
+export type DrawingBackground = "blank" | "lines" | "grid";
+
+/** A point is [x, y, pressure] in page units: the page is 1000 units wide. */
+export interface DrawingStroke {
+  tool: DrawingTool;
+  /** null = the theme's ink colour */
+  color: string | null;
+  size: number;
+  points: Array<[number, number, number]>;
+}
+
+export interface DrawingDocument {
+  schemaVersion: 1;
+  type: "drawing";
+  background: DrawingBackground;
+  height: number;
+  strokes: DrawingStroke[];
+}
+
+export type NoteContent = TiptapDocument | DrawingDocument;
+
 export interface TiptapDocument extends JSONContent {
   schemaVersion: 1;
   type: "doc";
@@ -49,6 +72,7 @@ export interface AttachmentMeta {
 }
 
 export interface NoteSummary {
+  kind: NoteKind;
   bulletShape: ShapeId | null;
   checkboxShape: ShapeId | null;
   id: number;
@@ -74,7 +98,7 @@ export interface NoteSummary {
 }
 
 export interface NoteDetail extends NoteSummary {
-  content: TiptapDocument;
+  content: NoteContent;
   attachments: AttachmentMeta[];
 }
 

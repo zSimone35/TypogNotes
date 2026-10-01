@@ -1,6 +1,6 @@
 [package]
 name = "typognotes"
-version = "0.1.0"
+version = "1.1.0-beta.1"
 description = "Un atelier locale per appunti e scrittura"
 authors = ["TypogNotes"]
 edition = "2024"

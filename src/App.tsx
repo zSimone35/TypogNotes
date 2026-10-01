@@ -1,7 +1,7 @@
 import { NoteStrip } from "./components/NoteStrip";
 import { CollectionTabs, CollectionView } from "./components/CollectionView";
 import { ShapeDefs } from "./components/ShapeDefs";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
@@ -17,6 +17,7 @@ import {
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
+  PenLine,
   Settings,
   Sun,
   Trash2,
@@ -40,6 +41,13 @@ import { Dashboard } from "./components/Dashboard";
 import { FolderDialog, FolderGlyph, folderColorCss } from "./components/FolderDialog";
 import { Modal } from "./components/Modal";
 import { NoteEditor, type NoteEditorHandle, type SavedDraft } from "./components/NoteEditor";
+import { DrawingEditor } from "./components/DrawingEditor";
+import type { NoteKind } from "./api/types";
+
+/** Text notes open in the rich-text editor, drawing notes on the canvas; both share props and the flush handle. */
+const ActiveEditor = forwardRef<NoteEditorHandle, React.ComponentProps<typeof NoteEditor> & { kind: NoteKind }>(function ActiveEditor({ kind, ...props }, ref) {
+  return kind === "drawing" ? <DrawingEditor ref={ref} {...props} /> : <NoteEditor ref={ref} {...props} />;
+});
 import { SettingsDialog } from "./components/SettingsDialog";
 import { fontCss } from "./options";
 import logoUrl from "./assets/brand/logo-ui.png";
@@ -296,10 +304,10 @@ export default function App() {
     }
   };
 
-  const createNote = async (targetFolderId = selectedFolderId) => {
+  const createNote = async (targetFolderId = selectedFolderId, kind: NoteKind = "text") => {
     if (targetFolderId === null || !(await flushEditor())) return;
     try {
-      const created = await api.createNote(targetFolderId);
+      const created = await api.createNote(targetFolderId, kind);
       setSelectedFolderId(targetFolderId);
       setActiveNote(created);
       setView("editor");
@@ -734,6 +742,7 @@ export default function App() {
             <aside className={`sidebar${railMode ? " is-rail" : ""}`} aria-label="Navigazione">
               <div className="sidebar-quick-actions">
                 <button type="button" className="primary-action fab" title="Nuova nota" onClick={() => void createNote()} disabled={selectedFolderId === null}><FilePlus2 size={18} /><span>Nuova nota</span></button>
+                <button type="button" className="secondary-action quick-drawing" aria-label="Nuova nota disegno" title="Nuova nota disegno" onClick={() => void createNote(selectedFolderId, "drawing")} disabled={selectedFolderId === null}><PenLine size={20} /></button>
                 <button type="button" className="secondary-action quick-folder" aria-label="Nuova cartella" title="Nuova cartella" onClick={() => setFolderDialog("new")}><FolderPlus size={20} /></button>
               </div>
 
@@ -792,7 +801,7 @@ export default function App() {
                 onConditionChange={setDashboardCondition}
                 onOrderChange={setDashboardOrder}
                 onViewModeChange={(dashboardView) => { setSettings((current) => ({ ...current, dashboardView })); void api.updateSettings({ dashboardView }).catch((cause) => setError(errorMessage(cause))); }}
-                onCreateNote={(id) => void createNote(id ?? dashboardFolderId ?? selectedFolderId)}
+                onCreateNote={(id, kind) => void createNote(id ?? dashboardFolderId ?? selectedFolderId, kind)}
                 onOpenFolder={id => void openFolder(id)} onEditFolder={setFolderDialog} onDeleteFolder={requestDeleteFolder}
                 onArchive={() => void showArchive()} onTrash={() => void showTrash()}
                 onMoveNote={(id, folderId) => void moveNote(id, folderId)}
@@ -814,7 +823,7 @@ export default function App() {
             ) : collectionKind && collectionActiveId === null ? (
               <CollectionView kind={collectionKind} notes={collectionNotes} folders={folders} onOpen={(note) => void openCollectionNote(collectionKind, note.id)} onRestore={(note) => void restoreListedNote(note)} onDelete={(note) => void deleteListedNote(note)} onBulk={(ids, action, folderId) => void runBulkAction(action, folderId, ids)} />
             ) : activeNote ? (
-              <NoteEditor key={`${activeNote.id}-${activeNote.archivedAt ?? "active"}-${activeNote.trashedAt ?? ""}`} ref={editorRef} note={activeNote} settings={settings} readOnly={collectionKind !== null || activeNote.archivedAt !== null || activeNote.trashedAt !== null} onSaved={handleSaved} onSaveStatus={handleSaveStatus} onArchive={() => void archiveActiveNote()} onTrash={() => void trashActiveNote()} onRestore={() => void (view === "trash" ? restoreListedNote(activeNote) : requestRestore())} onToggleAttention={() => void toggleAttention(activeNote)} onExport={(format) => void exportActiveNote(format)} onSettingsChange={(partial) => void api.updateSettings(partial).then(setSettings).catch((cause) => setError(errorMessage(cause)))} onError={setError} />
+              <ActiveEditor kind={activeNote.kind} key={`${activeNote.id}-${activeNote.archivedAt ?? "active"}-${activeNote.trashedAt ?? ""}`} ref={editorRef} note={activeNote} settings={settings} readOnly={collectionKind !== null || activeNote.archivedAt !== null || activeNote.trashedAt !== null} onSaved={handleSaved} onSaveStatus={handleSaveStatus} onArchive={() => void archiveActiveNote()} onTrash={() => void trashActiveNote()} onRestore={() => void (view === "trash" ? restoreListedNote(activeNote) : requestRestore())} onToggleAttention={() => void toggleAttention(activeNote)} onExport={(format) => void exportActiveNote(format)} onSettingsChange={(partial) => void api.updateSettings(partial).then(setSettings).catch((cause) => setError(errorMessage(cause)))} onError={setError} />
             ) : (
               <div className="empty-state"><img data-shape="cookie7Sided" src={logoUrl} alt="Logo TypogNotes" /><h1>Scrivania pronta</h1><p>Apri una nota o creane una nuova.</p>{view === "editor" && <button type="button" onClick={() => void createNote()}><FilePlus2 size={17} /> Nuova nota</button>}</div>
             )}

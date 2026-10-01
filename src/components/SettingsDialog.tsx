@@ -1,7 +1,8 @@
 import { ShapePicker } from "./ShapePicker";
 import { useState } from "react";
 import { Modal } from "./Modal";
-import { Download, Moon, Palette, PenLine, Shapes, X } from "lucide-react";
+import { Download, Info, Moon, Palette, PenLine, Shapes, X } from "lucide-react";
+import changelog from "../../CHANGELOG.md?raw";
 import type { AppSettings, ExportFormat, LayoutDensity, LineSpacing } from "../api/types";
 import {
   EDITOR_FONTS,
@@ -11,6 +12,10 @@ import {
   LINE_SPACINGS,
   MONOSPACE_FONTS,
 } from "../options";
+
+// Bullet points of this version's section in CHANGELOG.md.
+const releaseNotes = (changelog.split(/^## /m).find((section) => section.startsWith(`${__APP_VERSION__} `)) ?? "")
+  .split(/\r?\n/).filter((line) => line.startsWith("- ")).map((line) => line.slice(2));
 
 interface Props {
   settings: AppSettings;
@@ -61,6 +66,10 @@ export function SettingsDialog({ settings, error, onClose, onSave }: Props) {
           </SettingsSection>
           <SettingsSection icon={<Download size={17} />} title="Esportazione">
             <SelectField label="Formato predefinito" value={draft.defaultExportFormat} onChange={(value) => update("defaultExportFormat", value as ExportFormat)} options={EXPORT_FORMATS} />
+          </SettingsSection>
+          <SettingsSection icon={<Info size={17} />} title="Informazioni">
+            <p className="settings-version">TypogNotes {__APP_VERSION__}{import.meta.env.DEV && " · versione di sviluppo"}</p>
+            {releaseNotes.length > 0 && <><span className="eyebrow">Novità in questa versione</span><ul className="settings-release-notes">{releaseNotes.map((note) => <li key={note}>{note}</li>)}</ul></>}
           </SettingsSection>
         </div>
         {error && <p className="settings-error" role="alert">{error}</p>}

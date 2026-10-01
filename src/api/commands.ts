@@ -17,7 +17,8 @@ import type {
   NoteCondition,
   NoteOrder,
   SaveReceipt,
-  TiptapDocument,
+  NoteContent,
+  NoteKind,
 } from "./types";
 
 export const api = {
@@ -54,8 +55,8 @@ export const api = {
   deleteFolder: (id: number) =>
     invoke<void>("delete_folder", { input: { id } }),
 
-  createNote: (folderId: number) =>
-    invoke<NoteDetail>("create_note", { input: { folderId } }),
+  createNote: (folderId: number, kind: NoteKind = "text") =>
+    invoke<NoteDetail>("create_note", { input: { folderId, kind } }),
 
   getNote: (id: number) =>
     invoke<NoteDetail>("get_note", { input: { id } }),
@@ -69,7 +70,7 @@ export const api = {
     paperColor: PaperColor;
     lineSpacing: LineSpacing;
     paperWidth: number;
-    content: TiptapDocument;
+    content: NoteContent;
     expectedRevision: number;
   }) => invoke<SaveReceipt>("save_note", { input }),
 

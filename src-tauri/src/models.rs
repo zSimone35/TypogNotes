@@ -38,6 +38,7 @@ pub struct AttachmentMeta {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NoteSummary {
+    pub kind: String,
     pub bullet_shape: Option<String>,
     pub checkbox_shape: Option<String>,
     pub id: i64,
@@ -194,6 +195,8 @@ pub struct AddDictionaryWordInput {
 #[serde(rename_all = "camelCase")]
 pub struct CreateNoteInput {
     pub folder_id: i64,
+    #[serde(default)]
+    pub kind: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

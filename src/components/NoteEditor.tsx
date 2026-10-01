@@ -19,6 +19,8 @@ import FindAndReplace from "@tiptap/extension-find-and-replace";
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import TextAlign from "@tiptap/extension-text-align";
+import { TableKit } from "@tiptap/extension-table";
+import type { ChainedCommands } from "@tiptap/core";
 import { Color, FontFamily, TextStyle } from "@tiptap/extension-text-style";
 import { Extension, Node, mergeAttributes } from "@tiptap/core";
 import { TextSelection } from "@tiptap/pm/state";
@@ -37,7 +39,7 @@ import sql from "highlight.js/lib/languages/sql";
 import typescript from "highlight.js/lib/languages/typescript";
 import xml from "highlight.js/lib/languages/xml";
 import { createLowlight } from "lowlight";
-import { Ban, BookOpen, ChevronDown, ChevronRight, ClipboardPaste, ClipboardType, Copy, Eraser, Highlighter, Palette, PlusCircle, Scissors, X } from "lucide-react";
+import { Ban, BookOpen, ChevronDown, ChevronRight, ClipboardPaste, ClipboardType, Copy, Eraser, Highlighter, Palette, PlusCircle, Scissors, Table2, X } from "lucide-react";
 import { api, errorMessage } from "../api/commands";
 import type {
   AppSettings,
@@ -47,11 +49,12 @@ import type {
   PaperColor,
   SaveReceipt,
   SaveStatus,
+  NoteContent,
   TiptapDocument,
 } from "../api/types";
 import { DICTIONARY_LANGUAGES, EDITOR_FONTS, COLLAPSIBLE_COLORS, toHex, editorLeadingPx, fontCss } from "../options";
 import { CodeBlockView } from "./CodeBlockView";
-import { EditorToolbar, showAnchoredPopover, type ToolbarWidthSetting } from "./EditorToolbar";
+import { EditorToolbar, showAnchoredPopover } from "./EditorToolbar";
 import { MultiSelection, clearTextSelections, runForTextSelections } from "../editor/multiSelection";
 import { SpellcheckDecorations, setSpellcheckRanges, wordsInDocument } from "../editor/spellcheck";
 import { HeadingFold } from "../editor/headingFold";
@@ -259,6 +262,7 @@ const extensions = [
   TaskItem.configure({ nested: true }),
   CodeBlock,
   CollapsibleBlock,
+  TableKit.configure({ table: { resizable: true } }),
   TextStyle,
   FontSize,
   Color.extend({
@@ -291,10 +295,10 @@ export interface SavedDraft {
   paperColor: PaperColor;
   lineSpacing: LineSpacing;
   paperWidth: number;
-  content: TiptapDocument;
+  content: NoteContent;
 }
 
-interface Props {
+export interface NoteEditorProps {
   note: NoteDetail;
   settings: AppSettings;
   readOnly?: boolean;
@@ -309,7 +313,7 @@ interface Props {
   onError: (message: string) => void;
 }
 
-export const NoteEditor = forwardRef<NoteEditorHandle, Props>(function NoteEditor(
+export const NoteEditor = forwardRef<NoteEditorHandle, NoteEditorProps>(function NoteEditor(
   {
     note,
     settings,
@@ -349,7 +353,8 @@ export const NoteEditor = forwardRef<NoteEditorHandle, Props>(function NoteEdito
   const lineSpacingRef = useRef(note.lineSpacing);
   const paperWidthRef = useRef(note.paperWidth);
   const revisionRef = useRef(note.revision);
-  const contentRef = useRef<TiptapDocument>(note.content);
+  // App renders NoteEditor only for text notes.
+  const contentRef = useRef(note.content as TiptapDocument);
   const changeVersionRef = useRef(0);
   const savedVersionRef = useRef(0);
   const timerRef = useRef<number | null>(null);
@@ -370,7 +375,7 @@ export const NoteEditor = forwardRef<NoteEditorHandle, Props>(function NoteEdito
   const pendingCopies = useRef(new Map<number, Promise<void>>());
   const editor = useEditor({
     extensions,
-    content: editorDocument(note.content),
+    content: editorDocument(contentRef.current),
     editable: !readOnly,
     immediatelyRender: false,
     editorProps: {
@@ -402,6 +407,12 @@ export const NoteEditor = forwardRef<NoteEditorHandle, Props>(function NoteEdito
           const hr = (event.target as HTMLElement).closest("hr");
           if (hr) { setRuleMenu({ x: mouse.clientX, y: mouse.clientY, pos: view.posAtDOM(hr, 0) }); setContextMenu(null); return true; }
           setRuleMenu(null);
+          // Table actions follow the caret: a right-click in a cell moves it there unless the click is inside the selection.
+          if ((event.target as HTMLElement).closest("td, th")) {
+            const pos = view.posAtCoords({ left: mouse.clientX, top: mouse.clientY })?.pos;
+            const { from, to } = view.state.selection;
+            if (pos !== undefined && (pos < from || pos > to)) view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, pos)));
+          }
           const word = contextWord(view, mouse.clientX, mouse.clientY);
           const { from, to } = view.state.selection;
           const normalized = word.toLocaleLowerCase(spellLanguageRef.current);
@@ -751,14 +762,6 @@ export const NoteEditor = forwardRef<NoteEditorHandle, Props>(function NoteEdito
         onToggleOutline={() => setOutlineOpen((current) => !current)}
         onEditorFontChange={(editorFont) => onSettingsChange({ editorFont })}
         onEditorFontSizeChange={(editorFontSize) => onSettingsChange({ editorFontSize })}
-        toolbarWidths={{
-          toolbarCharacterWidth: settings.toolbarCharacterWidth,
-          toolbarParagraphWidth: settings.toolbarParagraphWidth,
-          toolbarStylesWidth: settings.toolbarStylesWidth,
-          toolbarNoteWidth: settings.toolbarNoteWidth,
-          toolbarToolsWidth: settings.toolbarToolsWidth,
-        }}
-        onToolbarWidthChange={(setting: ToolbarWidthSetting, width) => onSettingsChange({ [setting]: width })}
       />
       <div className="editor-body">
       <div ref={paperScrollRef} className="paper-scroll thin-scrollbar" onScroll={(event) => noteViewStates.set(note.id, { scrollTop: event.currentTarget.scrollTop, from: editor?.state.selection.from ?? 1, to: editor?.state.selection.to ?? 1 })}>
@@ -874,6 +877,10 @@ function EditorContextMenu({ noteId, onInsertImages, editor, menu, settings, onI
       {menu.selectionMisspelled.length > 0 && <div className="context-correction-actions"><button type="button" onClick={() => { onIgnoreMany(menu.selectionMisspelled); onClose(); }}><Ban size={19} />Ignora {menu.selectionMisspelled.length} correzioni nella selezione</button></div>}
       {menu.word && menu.misspelled && <section className="context-section context-dictionary"><h3><BookOpen size={17} /> Dizionario {language}: “{menu.word}”</h3>{menu.suggestions.map((word) => <button type="button" className="context-suggestion" key={word} onClick={() => { editor.chain().focus().insertContent(word).run(); onClose(); }}>{word}<ChevronRight size={16} /></button>)}{menu.suggestions.length === 0 && <p>Nessun suggerimento disponibile.</p>}</section>}
       {menu.word && menu.misspelled && <div className="context-correction-actions"><button type="button" onClick={() => { onIgnore(menu.word); onClose(); }}><Ban size={19} /> Ignora correzione</button><button type="button" onClick={() => { void onAddDictionary(menu.word).catch((cause) => onError(`Parola non aggiunta al dizionario: ${errorMessage(cause)}`)).finally(onClose); }}><PlusCircle size={19} /> Aggiungi al dizionario</button></div>}
+      {editor.isActive("table") && <section className="context-section context-table">
+        <h3><Table2 size={17} /> Tabella</h3>
+        <div className="context-format-buttons">{TABLE_ACTIONS.map(([label, command]) => <button key={label} type="button" className={label === "Elimina tabella" ? "danger-text" : undefined} disabled={!command(editor.can().chain().focus()).run()} onClick={() => { command(editor.chain().focus()).run(); onClose(); }}>{label}</button>)}</div>
+      </section>}
       <section className="context-section context-formatting">
         <h3><span className="context-aa">AA</span> Formattazione testo</h3>
         <label className="context-field"><span>Font</span><select value={selectionFont} onChange={(event) => { const font = EDITOR_FONTS.find((item) => item.id === event.target.value); if (!font) return; setSelectionFont(font.id); runForTextSelections(editor, () => { editor.chain().focus().setFontFamily(font.label).run(); }); }}>{EDITOR_FONTS.map((font) => <option key={font.id} value={font.id}>{font.label}</option>)}</select></label>
@@ -886,6 +893,18 @@ function EditorContextMenu({ noteId, onInsertImages, editor, menu, settings, onI
   );
 }
 
+const TABLE_ACTIONS: ReadonlyArray<readonly [string, (chain: ChainedCommands) => ChainedCommands]> = [
+  ["Riga sopra", (chain) => chain.addRowBefore()],
+  ["Riga sotto", (chain) => chain.addRowAfter()],
+  ["Colonna a sinistra", (chain) => chain.addColumnBefore()],
+  ["Colonna a destra", (chain) => chain.addColumnAfter()],
+  ["Elimina riga", (chain) => chain.deleteRow()],
+  ["Elimina colonna", (chain) => chain.deleteColumn()],
+  ["Unisci celle", (chain) => chain.mergeCells()],
+  ["Dividi cella", (chain) => chain.splitCell()],
+  ["Intestazione", (chain) => chain.toggleHeaderRow()],
+  ["Elimina tabella", (chain) => chain.deleteTable()],
+];
 
 /** Puts the caret on the heading first, so a folded section containing it opens, then scrolls to it. */
 function openOutlineHeading(editor: NonNullable<ReturnType<typeof useEditor>>, index: number, scroller: HTMLElement | null) {

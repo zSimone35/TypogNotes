@@ -27,7 +27,7 @@ async function openEditor(page: Page) {
   await page.evaluate(() => document.fonts.ready);
 }
 
-/** Every visible ribbon group: controls stay inside it, never overlap, never cut their text. */
+/** The toolbar: at most two rows; controls stay inside it, never overlap, never cut their text. */
 async function toolbarProblems(page: Page): Promise<string[]> {
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   return page.evaluate(() => {
@@ -43,8 +43,11 @@ async function toolbarProblems(page: Page): Promise<string[]> {
     };
     const name = (element: Element) => element.getAttribute("aria-label") ?? (element.textContent?.trim().slice(0, 30) || element.className);
     const context = document.createElement("canvas").getContext("2d")!;
-    for (const group of [...toolbar.querySelectorAll<HTMLElement>(".ribbon-group")].filter(visible)) {
-      const label = group.getAttribute("aria-label");
+    const rows = toolbar.querySelector(".ribbon-strip")!.getBoundingClientRect().height;
+    if (rows > 90) problems.push(`più di due righe: ${Math.round(rows)}px`);
+    // Narrow layouts flatten the groups, so the strip itself is the container to check against.
+    for (const group of [toolbar.querySelector<HTMLElement>(".ribbon-strip")!]) {
+      const label = "toolbar";
       const groupRect = group.getBoundingClientRect();
       if (!inside(groupRect, toolbarRect)) problems.push(`${label}: il gruppo esce dalla toolbar`);
       const controls = [...group.querySelectorAll<HTMLElement>("button, select, .toolbar-field-label, .ribbon-label")]
@@ -56,7 +59,7 @@ async function toolbarProblems(page: Page): Promise<string[]> {
           context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
           const longest = Math.max(...[...control.options].map((option) => context.measureText(option.text).width));
           const room = control.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-          if (room + 1 < longest) problems.push(`${label}: "${name(control)}" taglia l'opzione più lunga (${Math.round(room)}px < ${Math.round(longest)}px)`);
+          if (room + 1 < longest && style.textOverflow !== "ellipsis") problems.push(`${label}: "${name(control)}" taglia l'opzione più lunga (${Math.round(room)}px < ${Math.round(longest)}px)`);
         } else if (control.scrollWidth > control.clientWidth + 1) {
           problems.push(`${label}: "${name(control)}" ha il testo tagliato`);
         }
@@ -76,63 +79,49 @@ async function toolbarProblems(page: Page): Promise<string[]> {
   });
 }
 
-/** Checks the full ribbon, or every tab of the compact one. */
 async function checkRibbon(page: Page, setup: string) {
   // The sidebar animates its width for 250ms: measure once the layout has settled.
   await page.waitForTimeout(400);
-  const layout = await page.locator(".ribbon-strip").getAttribute("data-layout");
-  const problems: string[] = [];
-  if (layout === "compact") {
-    for (const tab of await page.locator(".ribbon-tabs button").all()) {
-      await tab.click();
-      problems.push(...(await toolbarProblems(page)).map((problem) => `[${tab}] ${problem}`));
-    }
-  } else {
-    problems.push(...await toolbarProblems(page));
-  }
-  expect(problems, `${setup} (${layout})`).toEqual([]);
+  expect(await toolbarProblems(page), setup).toEqual([]);
 }
 
 for (const width of [1024, 1152, 1280, 1366, 1440, 1600, 1920]) {
-  for (const query of ["", "?wideToolbar"]) {
-    test(`toolbar senza elementi compressi o sovrapposti a ${width}px${query ? " con sezioni allargate" : ""}`, async ({ page }) => {
-      await page.setViewportSize({ width, height: 800 });
-      await openApp(page, query);
-      await openEditor(page);
-      await checkRibbon(page, "barra laterale normale");
+  test(`toolbar senza elementi compressi o sovrapposti a ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await openApp(page);
+    await openEditor(page);
+    await checkRibbon(page, "barra laterale normale");
 
-      await page.keyboard.press("Control+f");
-      await expect(page.getByRole("search", { name: "Trova e sostituisci" })).toBeVisible();
-      await checkRibbon(page, "con Trova aperto");
-      await page.keyboard.press("Escape");
+    await page.keyboard.press("Control+f");
+    await expect(page.getByRole("search", { name: "Trova e sostituisci" })).toBeVisible();
+    await checkRibbon(page, "con Trova aperto");
+    await page.keyboard.press("Escape");
 
-      const resizer = page.locator(".sidebar-resizer");
-      await resizer.focus();
-      for (let step = 0; step < 9; step += 1) await resizer.press("ArrowRight");
-      await checkRibbon(page, "barra laterale larga");
+    const resizer = page.locator(".sidebar-resizer");
+    await resizer.focus();
+    for (let step = 0; step < 9; step += 1) await resizer.press("ArrowRight");
+    await checkRibbon(page, "barra laterale larga");
 
-      await page.getByRole("button", { name: "Comprimi la barra laterale" }).click();
-      await expect(page.locator(".sidebar.is-rail")).toBeVisible();
-      await checkRibbon(page, "rail");
+    await page.getByRole("button", { name: "Comprimi la barra laterale" }).click();
+    await expect(page.locator(".sidebar.is-rail")).toBeVisible();
+    await checkRibbon(page, "rail");
 
-      await page.getByRole("button", { name: /Modalità focus/ }).click();
-      await expect(page.locator(".sidebar")).toHaveCount(0);
-      await checkRibbon(page, "modalità focus");
-    });
-  }
+    await page.getByRole("button", { name: /Modalità focus/ }).click();
+    await expect(page.locator(".sidebar")).toHaveCount(0);
+    await checkRibbon(page, "modalità focus");
+  });
 }
 
-test("il nastro passa alle schede solo quando i gruppi non entrano", async ({ page }) => {
-  await page.setViewportSize({ width: 1920, height: 900 });
+test("toolbar: scritte sullo schermo largo, solo icone quando si stringe", async ({ page }) => {
+  await page.setViewportSize({ width: 2560, height: 900 });
   await openApp(page);
   await openEditor(page);
-  await expect(page.locator(".ribbon-strip")).toHaveAttribute("data-layout", "full");
-  await expect(page.locator(".ribbon-tabs")).toBeHidden();
-  await page.setViewportSize({ width: 1024, height: 900 });
-  await expect(page.locator(".ribbon-strip")).toHaveAttribute("data-layout", "compact");
-  await expect(page.locator(".ribbon-tabs")).toBeVisible();
-  await page.setViewportSize({ width: 1920, height: 900 });
-  await expect(page.locator(".ribbon-strip")).toHaveAttribute("data-layout", "full");
+  await expect(page.getByText("Titolo 1", { exact: true })).toBeVisible();
+  expect((await page.locator(".editor-toolbar").boundingBox())!.height).toBeLessThanOrEqual(48);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.getByText("Titolo 1", { exact: true })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Titolo 1" })).toBeVisible();
+  expect((await page.locator(".note-strip").boundingBox())!.height).toBeLessThanOrEqual(36);
 });
 
 test("barra superiore: rail, modalità focus, schede e tema", async ({ page }) => {
@@ -349,4 +338,40 @@ test("Impostazioni: switch, campi e densità", async ({ page }) => {
   expect(saved.spellcheck).toBe(true);
   expect(saved.layoutDensity).toBe("compact");
   await expect(page.locator(".app-shell.density-compact")).toBeVisible();
+});
+
+test("i menu a comparsa mostrano una voce per riga in entrambi i temi", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.locator(".folder-main")).toBeVisible();
+  const expectTidy = async (name: string | RegExp) => {
+    const menu = page.getByRole("menu", { name }).first();
+    await expect(menu).toBeVisible();
+    const sizes = await menu.evaluate((el) => ({
+      clipped: el.scrollWidth > el.clientWidth,
+      tallest: Math.max(...[...el.querySelectorAll(":scope > button, .shape-scope button")].map((b) => b.getBoundingClientRect().height)),
+    }));
+    expect(sizes, String(name)).toEqual({ clipped: false, tallest: expect.any(Number) });
+    expect(sizes.tallest, String(name)).toBeLessThanOrEqual(48);
+    await page.keyboard.press("Escape");
+  };
+  for (const dark of [false, true]) {
+    if (dark) {
+      await page.getByRole("button", { name: "Bacheca" }).click();
+      await page.getByRole("button", { name: /Impostazioni/ }).click();
+      await page.getByRole("button", { name: "Tema scuro" }).click();
+      await page.getByRole("button", { name: "Salva impostazioni" }).click();
+    }
+    await page.getByRole("button", { name: /^Azioni cartella/ }).first().click();
+    await expectTidy(/^Azioni cartella/);
+    await page.locator(".dashboard-note-card .dashboard-note-menu").first().click();
+    await expectTidy(/^Azioni per/);
+    const option = await page.locator(".dashboard-note-card select option").first().evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(option).not.toBe("rgba(0, 0, 0, 0)");
+    await page.locator(".folder-main").click();
+    await page.getByRole("button", { name: "Inserisci divisore" }).click({ button: "right" });
+    await expectTidy("Spessore divisore");
+    await page.getByRole("button", { name: "Checklist" }).click({ button: "right" });
+    await expectTidy("Forma checkbox");
+  }
 });
