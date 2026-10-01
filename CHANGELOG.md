@@ -3,7 +3,7 @@
 Ogni versione ha una sezione `## x.y.z — data`. Impostazioni → Informazioni mostra la sezione della versione in `package.json`.
 Per una nuova versione: aggiorna `version` in `package.json` e aggiungi qui la sezione corrispondente in cima.
 
-## 1.1.0-beta.1 — 2026-10-02 (beta)
+## 1.1.0 — 2026-10-02
 
 - La versione dell'app e le novità sono visibili in Impostazioni → Informazioni.
 - La build di sviluppo è ora un'app separata ("TypogNotes Dev"), con dati e impostazioni propri: non tocca più le note dell'app installata.

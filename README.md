@@ -10,7 +10,6 @@ A Windows desktop app for taking notes on ruled paper, sorting them into folders
 and finding them again instantly. Everything stays on your computer: no account, no cloud.
 
 [![Download for Windows](https://img.shields.io/github/v/release/zSimone35/TypogNotes?label=Download%20for%20Windows&style=for-the-badge&color=855133)](https://github.com/zSimone35/TypogNotes/releases/latest)
-[![Try the beta](https://img.shields.io/github/v/release/zSimone35/TypogNotes?include_prereleases&label=Try%20the%20beta&style=for-the-badge&color=6b5778)](https://github.com/zSimone35/TypogNotes/releases/tag/v1.1.0-beta.1)
 
 ![Tauri 2](https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white)
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
@@ -24,7 +23,7 @@ and finding them again instantly. Everything stays on your computer: no account,
 
 > **Note:** the application interface is in Italian. Italian UI names are given in parentheses where they first appear.
 
-> 🧪 **New in the [1.1.0 beta](https://github.com/zSimone35/TypogNotes/releases/tag/v1.1.0-beta.1): drawing notes and tables.** Handwrite with the mouse or a tablet pen, insert tables into your notes, and enjoy a more compact toolbar. It is a beta: the stable version is still [1.0.0](https://github.com/zSimone35/TypogNotes/releases/tag/v1.0.0).
+> ✨ **New in [1.1.0](https://github.com/zSimone35/TypogNotes/releases/tag/v1.1.0): drawing notes and tables.** Handwrite with the mouse or a tablet pen, insert tables into your notes, and enjoy a more compact toolbar.
 
 ## Table of contents
 
@@ -45,14 +44,14 @@ and finding them again instantly. Everything stays on your computer: no account,
 - H1–H3 headings with **collapsible sections**: the arrow to the right of a heading hides the content below it.
 - Full formatting: font per selection, size, bold, italic, underline, strikethrough, alignment.
 - **10×8 palette** for text and highlighter, custom colors and **recent colors for each note**.
-- **Tables** *(beta)*: pick rows × columns from a grid, right-click a cell to add or delete rows and columns, merge or split cells, toggle the header row. Columns can be resized by dragging.
+- **Tables**: pick rows × columns from a grid, right-click a cell to add or delete rows and columns, merge or split cells, toggle the header row. Columns can be resized by dragging.
 - Code blocks with syntax highlighting (14 languages) and quick copy.
 - **Images** (PNG, JPEG, WebP, GIF, BMP) from a button or with Ctrl+V, in 5 layouts: inline, wrap text, break text, behind or in front of the text.
 - Horizontal dividers from 1 to 8 px thick (right-click the button or the line).
 - Offline spell checking in Italian, English, French, Spanish and German, with a personal dictionary; it ignores code blocks.
 - Find and replace (Ctrl+F) and a note outline generated from the headings.
 
-**Drawing notes** *(beta)*
+**Drawing notes**
 - A note you write by hand, with the mouse, a graphics tablet pen or a finger.
 - Pen whose stroke width follows the tablet pressure, highlighter, stroke eraser, colors and 4 sizes.
 - Blank, ruled or squared page that grows as you write; undo and redo (Ctrl+Z / Ctrl+Y).
@@ -78,16 +77,16 @@ and finding them again instantly. Everything stays on your computer: no account,
 | Dashboard | Dark theme |
 |---|---|
 | <img src="assets/screenshots/bacheca.png" alt="Dashboard with folders, text notes and drawing notes" /> | <img src="assets/screenshots/scrivania-scura.png" alt="The Desk in the dark theme, with a table" /> |
-| **Drawing note** *(beta)* | **Drawing note, dark theme** *(beta)* |
+| **Drawing note** | **Drawing note, dark theme** |
 | <img src="assets/screenshots/disegno.png" alt="A drawing note on squared paper: handwriting, a diagram with arrows and highlighter" /> | <img src="assets/screenshots/disegno-scuro.png" alt="The same drawing note in the dark theme, with light ink" /> |
-| **Table actions** *(beta)* | **Paper colors** |
+| **Table actions** | **Paper colors** |
 | <img src="assets/screenshots/tabella.png" alt="Right-click menu on a table cell with row and column actions" /> | <img src="assets/screenshots/fogli.png" alt="Menu of the 16 paper colors" /> |
 | **Text and highlighter palette** | **Trash** |
 | <img src="assets/screenshots/palette.png" alt="Text color palette" /> | <img src="assets/screenshots/cestino-scuro.png" alt="Trash page with notes shown as cards" /> |
 
 ## Installation
 
-1. Download `TypogNotes_x.y.z_x64-setup.exe` from the [latest release](https://github.com/zSimone35/TypogNotes/releases/latest), or the [1.1.0 beta](https://github.com/zSimone35/TypogNotes/releases/tag/v1.1.0-beta.1) to try drawing notes and tables.
+1. Download `TypogNotes_x.y.z_x64-setup.exe` from the [latest release](https://github.com/zSimone35/TypogNotes/releases/latest).
 2. Run the installer and follow the steps. No administrator rights are needed: the app is installed for the current user.
 3. Open TypogNotes from the Start menu.
 
@@ -95,7 +94,7 @@ Requirements: 64-bit Windows 10 or 11 with Microsoft Edge WebView2, already pres
 
 > The installer is not digitally signed: on first launch Windows SmartScreen may show a warning. Choose **More info › Run anyway**.
 
-> **Beta and your data:** the beta upgrades the local database, which version 1.0.0 can no longer open. To be able to go back, copy `%LOCALAPPDATA%\com.typognotes.app` before installing it.
+> **Updating from 1.0.0:** version 1.1.0 upgrades the local database, which 1.0.0 can no longer open. To be able to go back, copy `%LOCALAPPDATA%\com.typognotes.app` before installing it.
 
 ## How to use it
 
